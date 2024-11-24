@@ -9,7 +9,7 @@ class RandomPolicy(BattlePolicy):
         my_team = g.teams[0]
         my_active = my_team.active
         my_active_moves = my_active.moves
-        my_switch = my_team.party[1:]
+        my_switch = my_team.party
         my_actions = my_active_moves + my_switch
 
         # Do un azione random tra le 4 mosse del pokemon attivo e i due switch con i pokemon in panchina 
@@ -19,9 +19,8 @@ class RandomPolicy(BattlePolicy):
         switch_probability = 0.15   # costante di probabilità di uno switch rispettoa usare una mossa
 
         # Definizione di una distribuzione di probabilità su tutte le azioni che posso fare
-        pi = ([(1. - switch_probability) / n_moves] * n_moves) + ([switch_probability / n_switches] * n_switches)
+        pi = ([(1. - switch_probability) / n_moves] * n_moves) + ([switch_probability / n_switch] * n_switch)
 
         # scelta random dell'azione con la distribuzione di probabilità definita prima
         random_choice = np.random.choice(n_actions, p=pi)
-        action_choice = my_actions[random_choice]
-        return action_choice
+        return random_choice
