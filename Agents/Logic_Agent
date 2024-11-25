@@ -1,1 +1,86 @@
+from vgc.behaviour import BattlePolicy
+from vgc.datatypes.Objects import GameState
 
+class LogicPolicy(BattlePolicy):
+
+  def __init__(self):
+        super().__init__()  # Chiama il costruttore di BattlePolicy
+        self.kb = KnowledgeBase()  # Inizializza la Knowledge Base 
+
+  def get_action(self, g: GameState) -> int:
+
+        # Prendo le informazioni sul mio team:
+        my_team = g.teams[0]
+        my_active = my_team.active
+        my_hp = my_active.hp
+        my_pkm_type = my_active.type
+        my_active_moves = my_active.moves
+        move_types = [my_active_moves[0].type, my_active_moves[1].type, my_active_moves[2].type, my_active_moves[3].type]
+        move_targets = [my_active_moves[0].target, my_active_moves[1].target, my_active_moves[2].target, my_active_moves[3].target]
+        my_switch = my_team.party
+        my_hp_party = [my_switch[0].hp, my_switch[1].hp]
+
+        
+        # Prendo le informazioni sul team avversario:
+        opp_team = g.teams[1]
+        opp_active = opp_team.active
+        opp_pkm_type = opp_active.type
+
+        # aggiorni i fatti della KB
+        self.kb.update_facts(my_pkm_type, opp_pkm_type, move_types, move_targets, my_hp, my_hp_party)
+
+        # Do un azione random tra le 4 mosse del pokemon attivo e i due switch con i pokemon in panchina 
+        n_moves = my_active_moves.length 
+        n_switch = my_switch.length
+        n_actions = my_actions.length
+        switch_probability = 0.15   # costante di probabilità di uno switch rispettoa usare una mossa
+
+        # Definizione di una distribuzione di probabilità su tutte le azioni che posso fare
+        pi = ([(1. - switch_probability) / n_moves] * n_moves) + ([switch_probability / n_switch] * n_switch)
+
+        # scelta random dell'azione con la distribuzione di probabilità definita prima
+        random_choice = np.random.choice(n_actions, p=pi)
+        return random_choice
+
+
+class KnowledgeBase:
+    def __init__(self):
+        self.facts = {}  # Dizionario per memorizzare i fatti
+        self.rules = [
+            self.rule_super_effective,
+            self.rule_low_hp_switch,
+            self.rule_offensive_moves
+        ]  # Lista di regole (funzioni o condizioni)
+
+    def update_facts(self, my_pkm_type, opp_pkm_type, move_types, move_targets, my_hp, my_max_hp, party_status):
+        """
+        Aggiorna i fatti con i dati correnti.
+        """
+        self.facts = {
+            "my_pkm_type": my_pkm_type,
+            "opp_pkm_type": opp_pkm_type,
+            "move_types": move_types,
+            "move_targets": move_targets,
+            "my_hp": my_hp,
+            "my_hp_party": my_hp_party,
+        }
+
+    # Regole per la KB (Definite come metodi della classe)
+    def rule_super_effective(self, facts):
+        """
+        Se c'è una mossa superefficace, aumenta priorità +2.
+        """
+        my_type = facts["my_pkm_type"]
+        opp_type = facts["opp_pkm_type"]
+        move_types = facts["move_types"]
+
+        for i, move_type in enumerate(move_types):
+            multiplier = TYPE_CHART_MULTIPLIER[move_type][opp_type]
+            if multiplier > 1:  # Superefficace
+                return ("use_move", i)
+        return None
+
+    def evaluate(self):
+        """
+        Valuta le regole e determina la migliore azione.
+        """
