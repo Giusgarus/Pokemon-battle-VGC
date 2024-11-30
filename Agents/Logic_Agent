@@ -1,5 +1,7 @@
 from vgc.behaviour import BattlePolicy
+from vgc.datatypes.Constants import TYPE_CHART_MULTIPLIER
 from vgc.datatypes.Objects import GameState
+import math
 
 class LogicPolicy(BattlePolicy):
 
@@ -9,10 +11,14 @@ class LogicPolicy(BattlePolicy):
 
   def get_action(self, g: GameState) -> int:
 
+        # Prendo le informazioni sul tempo atmosferico:
+        weather = g.weather
+
         # Prendo le informazioni sul mio team:
         my_team = g.teams[0]
         my_active = my_team.active
         my_hp = my_active.hp
+        my_max_hp = my_active.max_hp
         my_pkm_type = my_active.type
         my_active_moves = my_active.moves
         move_types = [my_active_moves[0].type, my_active_moves[1].type, my_active_moves[2].type, my_active_moves[3].type]
@@ -27,59 +33,162 @@ class LogicPolicy(BattlePolicy):
         opp_pkm_type = opp_active.type
 
         # aggiorni i fatti della KB
-        self.kb.update_facts(my_pkm_type, opp_pkm_type, move_types, move_targets, my_hp, my_hp_party)
+        self.kb.update_facts(my_pkm_type, opp_pkm_type, move_types, move_targets, my_hp, my_max_hp, my_hp_party, weather)
 
-        # Do un azione random tra le 4 mosse del pokemon attivo e i due switch con i pokemon in panchina 
-        n_moves = my_active_moves.length 
-        n_switch = my_switch.length
-        n_actions = my_actions.length
-        switch_probability = 0.15   # costante di probabilità di uno switch rispettoa usare una mossa
-
-        # Definizione di una distribuzione di probabilità su tutte le azioni che posso fare
-        pi = ([(1. - switch_probability) / n_moves] * n_moves) + ([switch_probability / n_switch] * n_switch)
-
-        # scelta random dell'azione con la distribuzione di probabilità definita prima
-        random_choice = np.random.choice(n_actions, p=pi)
-        return random_choice
+        self.kb.clear_actions_priority()
+        self.kb.evaluate()
+        actions_priority = self.kb.get_actions_priority()
+        return actions_priority.index(max(actions_priority))
 
 
 class KnowledgeBase:
+
+    # ------------------- INIZIALIZZAZIONE DELLA KB -----------------------
     def __init__(self):
         self.facts = {}  # Dizionario per memorizzare i fatti
         self.rules = [
             self.rule_super_effective,
+            self.rule_stab,
+            self.rule_weather,
             self.rule_low_hp_switch,
             self.rule_offensive_moves
         ]  # Lista di regole (funzioni o condizioni)
+        self.actions_priority = [ 0, 0, 0, 0, 0, 0 ] # Lista di priorità delle azioni
 
+    def clear_actions_priority(self):
+        """
+        Ripulisce la lista delle priorità delle azioni.
+        """
+
+        for i in range(len(self.actions_priority)):
+            self.actions_priority[i] = 0
+        return None
+
+
+    # ------------------ RITORNA IL RISULTATO DEL MOTORE DI INFERENZA ---------------------
+    def get_actions_priority(self):
+        """
+        Ritorna l priorità delle azioni.
+        """
+
+        return self.actions_priority
+
+    # ------------------ AGGIORNA I FATTI CORRENTI -------------------
     def update_facts(self, my_pkm_type, opp_pkm_type, move_types, move_targets, my_hp, my_max_hp, party_status):
         """
         Aggiorna i fatti con i dati correnti.
         """
+
         self.facts = {
             "my_pkm_type": my_pkm_type,
             "opp_pkm_type": opp_pkm_type,
             "move_types": move_types,
             "move_targets": move_targets,
             "my_hp": my_hp,
+            "my_max_hp": my_max_hp,
             "my_hp_party": my_hp_party,
+            "weather": weather
         }
 
-    # Regole per la KB (Definite come metodi della classe)
+
+    # ------------ REGOLE PER LA KB: (Definite come metodi della classe) -----------------
     def rule_super_effective(self, facts):
         """
-        Se c'è una mossa superefficace, aumenta priorità +2.
+        Se c'è una mossa superefficace, aumenta priorità +2, Se c'è una mossa non superefficace, diminuisce priorità -2.
         """
-        my_type = facts["my_pkm_type"]
         opp_type = facts["opp_pkm_type"]
         move_types = facts["move_types"]
 
         for i, move_type in enumerate(move_types):
             multiplier = TYPE_CHART_MULTIPLIER[move_type][opp_type]
             if multiplier > 1:  # Superefficace
-                return ("use_move", i)
+                self.action_priority[i] += 2
+            if multiplier < 1: # Non Superefficace
+                self.action_priority[i] -= 2
         return None
 
+    def rule_stab(self, facts):
+        """
+        Se c'è una mossa stab, aumenta priorità +1.
+        """
+        my_type = facts["my_pkm_type"]
+        move_types = facts["move_types"]
+
+        for i, move_type in enumerate(move_types):
+            if my_type == move_type:  # mossa Stab
+                self.action_priority[i] += 1
+        return None
+
+    def rule_weather(self, facts):
+        """
+        Se c'è una mossa adatta al clima, aumenta priorità +1, se non è adatta, diminuisce di -1.
+        """
+        weather = facts["weather"]
+        move_types = facts["move_types"]
+
+        if weather == 0:
+            return None
+        
+        for i, move_type in enumerate(move_types):
+            if weather == 1: # SUNNY
+                if move_type == 1: # mossa fuoco
+                    self.action_priority[i] += 1
+                if move_type == 2: # mossa acqua 
+                    self.action_priority[i] -= 1
+            if weather == 2: # RAIN
+                if move_type == 2: # mossa acqua
+                    self.action_priority[i] += 1
+                if move_type == 1: # mossa fuoco
+                    self.action_priority[i] -= 1
+            if weather == 3: # SANDSTORM
+                if move_type == 12: # mossa roccia
+                    self.action_priority[i] += 1
+            if weather == 4: # HAIL
+                if move_type == 5: # mossa ghiaccio
+                    self.action_priority[i] += 1
+        return None
+
+    def rule_low_hp_switch(self, facts):
+        """
+        Se abbiamo meno del 50% di vita priorità a uno switch di +1, se abbiamo meno del 25% di vita +2.
+        """
+
+        my_hp = fatcs[my_hp]
+        my_max_hp = fatcs[my_max_hp]
+        my_hp_party = facts["my_hp_party"]
+
+        half_hp = math.ceil(my_max_hp / 2)
+        quarter_hp = math.ceil(my_max_hp / 4)
+
+        if my_hp <= quarter_hp:
+            index_switch = my_hp_party.index(max(my_hp_party))
+            if index_switch == 0:
+                self.action_priority[4] + = 2
+            else:
+                self.action_priority[5] + = 2
+        elif my_hp <= half_hp:
+            index_switch = my_hp_party.index(max(my_hp_party))
+            if index_switch == 0:
+                self.action_priority[4] + = 1
+            else:
+                self.action_priority[5] + = 1
+        return None
+
+    def rule_offensive_moves(self, facts):
+        """
+        Priorità alle mosse offensive, quindi un +1 se danneggiano il nemico.
+        """
+
+        move_targets = facts["move_targets"]
+
+        for i, move_target in enumerate(move_targets):
+            if move_target == 1:  # mossa offensiva
+                self.action_priority[i] += 1
+        return None
+
+
+
+    # ------------- IL MOTORE DI INFERENZA PER LA DECISIONE -------------------
     def evaluate(self):
         """
         Valuta le regole e determina la migliore azione.
