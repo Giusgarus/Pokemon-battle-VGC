@@ -1,6 +1,6 @@
-from vgc.behaviour.BattlePolicies import RandomPlayer
-from vgc.datatypes.Objects import PkmTeam
-from vgc.engine.PkmBattleEnv import PkmBattleEnv
+from pokemon_vgc_engine.vgc.behaviour.BattlePolicies import RandomPlayer
+from pokemon_vgc_engine.vgc.datatypes.Objects import PkmTeam
+from pokemon_vgc_engine.vgc.engine.PkmBattleEnv import PkmBattleEnv
 
 
 def run_statistics_battle(player0: RandomPlayer, player1: RandomPlayer, env: PkmBattleEnv, mode='console') -> tuple:

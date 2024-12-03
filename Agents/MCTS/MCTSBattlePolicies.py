@@ -1,10 +1,10 @@
+from __future__ import annotations
 import tkinter
 from copy import deepcopy
 from threading import Thread, Event
 from tkinter import CENTER, DISABLED, NORMAL
 from types import CellType
 from typing import List
-from __future__ import annotations
 
 import numpy as np
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
@@ -12,7 +12,7 @@ from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Constants import DEFAULT_PKM_N_MOVES, DEFAULT_PARTY_SIZE, TYPE_CHART_MULTIPLIER, DEFAULT_N_ACTIONS
-from vgc.datatypes.Objects import GameState, PkmTeam
+from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
 from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
 
 
@@ -32,9 +32,10 @@ class MCTSNode:
         self.total_playouts = 0
         self.is_leaf = True
     
-    def get_actions_combinations(self) -> list[int,int]:
+    def get_actions_combinations(self) -> list[PkmMove,PkmMove]:
         '''
-        Generates a list with all the combinations of the actions of the first team with the actions of the second one.
+        Generates a list with all the combinations of the actions (with type PkmMove) of the first team with the \
+        actions (still pf type PkmMove) of the second one.
 
         Returns:
         The list with all the combinations.
@@ -62,7 +63,7 @@ class MCTSNode:
 
 
 
-class MonteCarloTreeSearch(BattlePolicy):
+class MonteCarloTreeSearch():
     '''
     Class which handles the Monte Carlo Tree search.
     '''
@@ -97,12 +98,13 @@ class MonteCarloTreeSearch(BattlePolicy):
             node = next_node
         return node
 
-    def expansion(self, node: MCTSNode, n_expansions: int) -> list[MCTSNode]:
+    def expansion(self, node: MCTSNode, n_expansions=1) -> list[MCTSNode]:
         '''
         Implements the Expansion phase used to generate new nodes from the current one.
 
         Params:
         - node: the node on which perform the expansion.
+        - n_expansions: the number of children that should be expanded from the current node.
 
         Returns:
         The list of the children generated from the current node.
@@ -111,7 +113,7 @@ class MonteCarloTreeSearch(BattlePolicy):
         if not node.is_leaf:
             return None, False
         # Retrieve the actions and generate all the possible actions' combinations
-        actions_comb_list: list[list[int,int]] = node.get_actions_combinations()
+        actions_comb_list: list[list[PkmMove,PkmMove]] = node.get_actions_combinations()
         # Case of number of expansions too high
         if n_expansions > len(actions_comb_list):
             n_expansions = len(actions_comb_list)
@@ -127,6 +129,7 @@ class MonteCarloTreeSearch(BattlePolicy):
                 if len(indexes) == n_expansions:
                     break
             # Case of child to be created
+            
             next_env, _, _, _, _ = node.env.step(actions_comb_list[index])
             node.children.append(
                 MCTSNode(
@@ -231,11 +234,12 @@ class MCTSPlayer(BattlePolicy):
         '''
         # Initializations
         N = 100
-        tree = MonteCarloTreeSearch(deepcopy(state))
+        state_copy: GameState = deepcopy(state)
+        tree = MonteCarloTreeSearch(state_copy)
         # Perform N simulations
-        for i in range(N):
+        for _ in range(N):
             leaf = tree.selection()
-            children = tree.expansion(leaf)
+            children = tree.expansion(leaf, n_expansions=3)
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
@@ -248,7 +252,7 @@ class MCTSPlayer(BattlePolicy):
             this_node_value = child.utility_playouts / child.total_playouts
             if this_node_value > best_node_value:
                 best_node = child
-        return best_node.action
+        return best_node.actions
 
 
 
