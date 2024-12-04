@@ -10,15 +10,15 @@ def run_battle(player0: MCTSPlayer, player1: MCTSPlayer, env: PkmBattleEnv, mode
     Performs a single battle between two players and their teams in the environment passed as parameter.
     '''
     # Reset the environment to get the initial state
-    env.reset()
+    states, _ = env.reset()
     env.render(mode)
     # Perform a single battle until it's terminated
     terminated = False
     while not terminated:
-        my_action = player0.get_action(env)
-        opp_action = player1.get_action(env)
+        my_action = player0.get_action(states[0])
+        opp_action = player1.get_action(states[1])
         states, _, terminated, _, _ = env.step([my_action,opp_action])
-        env = states[0]
+        env.render()
     # Return the winner player of the battle
     if env.teams[0].fainted():
         return env.teams[0]
@@ -32,8 +32,8 @@ def main():
     pkm_roster = RandomPkmRosterGenerator().gen_roster()
     team_gen = RandomTeamFromRoster(roster=pkm_roster)
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
-    player0 = MCTSPlayer('Player 0')
-    player1 = MCTSPlayer('Player 1')
+    player0 = MCTSPlayer(name='Player 0', enable_print=True)
+    player1 = MCTSPlayer(name='Player 1', enable_print=True)
     full_team0: PkmFullTeam = team_gen.get_team()
     full_team1: PkmFullTeam = team_gen.get_team()
     team0 = full_team0.get_battle_team([0,1,2])
