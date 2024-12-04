@@ -20,7 +20,7 @@ class MinMaxBattlePolicy:
         min_eval = float('inf')
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            eval = self.minmax(new_game_state, depth - 1, True)
+            eval = self.max(new_game_state, depth - 1)
             min_eval = min(min_eval, eval)
         return min_eval
 
@@ -32,7 +32,7 @@ class MinMaxBattlePolicy:
         max_eval = float('-inf')
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            eval = self.minmax(new_game_state, depth - 1, False)
+            eval = self.min(new_game_state, depth - 1)
             max_eval = max(max_eval, eval)
         return max_eval
 
@@ -45,7 +45,7 @@ class MinMaxBattlePolicy:
         best_value = float('-inf')
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            move_value = self.minmax(new_game_state, self.depth - 1, False)
+            move_value = self.max(new_game_state, self.depth - 1)
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
