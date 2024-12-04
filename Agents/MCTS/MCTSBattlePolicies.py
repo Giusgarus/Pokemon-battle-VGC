@@ -32,10 +32,10 @@ class MCTSNode:
         self.total_playouts = 0
         self.is_leaf = True
     
-    def get_actions_combinations(self) -> list[PkmMove,PkmMove]:
+    def get_actions_combinations(self) -> list[int,int]:
         '''
-        Generates a list with all the combinations of the actions (with type PkmMove) of the first team with the \
-        actions (still pf type PkmMove) of the second one.
+        Generates a list with all the combinations of the actions of the first team as type int (move_id field) with the \
+        actions of the second one.
 
         Returns:
         The list with all the combinations.
@@ -47,7 +47,7 @@ class MCTSNode:
         combinations_list = []
         for i in range(len(actions_pkm1)):
             for j in range(len(actions_pkm2)):
-                combinations_list.append([actions_pkm1[i], actions_pkm2[j]])
+                combinations_list.append([actions_pkm1[i].move_id, actions_pkm2[j].move_id])
         return combinations_list
     
     def backpropagation_update(self, winner_value: int) -> None:
@@ -135,7 +135,7 @@ class MonteCarloTreeSearch():
                 MCTSNode(
                     env=next_env[0],
                     parent=node,
-                    action=actions_comb_list[index][0]
+                    actions=actions_comb_list[index]
                 )
             )
         node.is_leaf = False

@@ -28,10 +28,12 @@ def run_battle(player0: MCTSPlayer, player1: MCTSPlayer, env: PkmBattleEnv, mode
 
 
 def main():
+    # Random pokemon roster and team generators
+    pkm_roster = RandomPkmRosterGenerator().gen_roster()
+    team_gen = RandomTeamFromRoster(roster=pkm_roster)
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
     player0 = MCTSPlayer('Player 0')
     player1 = MCTSPlayer('Player 1')
-    team_gen = RandomTeamFromRoster(roster=RandomPkmRosterGenerator())
     full_team0: PkmFullTeam = team_gen.get_team()
     full_team1: PkmFullTeam = team_gen.get_team()
     team0 = full_team0.get_battle_team([0,1,2])
