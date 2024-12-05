@@ -13,42 +13,54 @@ class MinMaxBattlePolicy:
     def __init__(self, depth):
         self.depth = depth
 
-    def min(self, game_state, depth):
+    def min(self, game_state, depth, alpha, beta):
         if depth == 0 or game_state.is_game_over():
             return self.evaluate_game_state(game_state)
 
         min_eval = float('inf')
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            eval = self.max(new_game_state, depth - 1)
+            eval = self.max(new_game_state, depth - 1, alpha, beta)
             min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
         return min_eval
 
-
-    def max(self, game_state, depth):
+    def max(self, game_state, depth, alpha, beta):
         if depth == 0 or game_state.is_game_over():
             return self.evaluate_game_state(game_state)
 
         max_eval = float('-inf')
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            eval = self.min(new_game_state, depth - 1)
+            eval = self.min(new_game_state, depth - 1, alpha, beta)
             max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
         return max_eval
 
     def evaluate_game_state(self, game_state):
-        
+        # Implementa la tua logica di valutazione qui
         pass
 
     def get_best_move(self, game_state):
         best_move = None
         best_value = float('-inf')
+        alpha = float('-inf')
+        beta = float('inf')
+
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            move_value = self.max(new_game_state, self.depth - 1)
+            move_value = self.min(new_game_state, self.depth - 1, alpha, beta)
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
+            alpha = max(alpha, move_value)
+            if beta <= alpha:
+                break
+
         return best_move
     
 
