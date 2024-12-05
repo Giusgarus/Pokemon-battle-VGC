@@ -33,7 +33,7 @@ class Node:
 class MinMaxBattlePolicy:
     def __init__(self, depth):
         self.depth = depth
-
+    '''
     def min(self, game_state, depth, alpha, beta):
         if depth == 0 or game_state.is_game_over():
             return self.evaluate_game_state(game_state)
@@ -61,11 +61,50 @@ class MinMaxBattlePolicy:
             if beta <= alpha:
                 break
         return max_eval
+        '''
 
-    def evaluate_game_state(self, game_state):
-        # Implementa la tua logica di valutazione qui
-        pass
+    def evaluate_game_state(self, game_state: GameState) -> float:
+        my_team = game_state.teams[0]
+        opp_team = game_state.teams[1]
 
+        my_score = 0
+        opp_score = 0
+
+        # Considera la salute residua dei Pokémon
+        for pkm in my_team.get_pkm_list():
+            my_score += pkm.hp / pkm.max_hp
+        for pkm in opp_team.get_pkm_list():
+            opp_score += pkm.hp / pkm.max_hp
+
+        # Considera il numero di Pokémon rimasti
+        my_score += len([pkm for pkm in my_team.pkm_list if pkm.current_hp > 0])
+        opp_score += len([pkm for pkm in opp_team.pkm_list if pkm.current_hp > 0])
+
+        # Considera le condizioni di stato
+        for pkm in my_team.get_pkm_list():
+            if pkm.status != 0:
+                my_score -= 0.5
+        for pkm in opp_team.get_pkm_list():
+            if pkm.status != 0:
+                opp_score -= 0.5
+
+        # Considera il vantaggio di tipo
+        my_active_pkm = my_team.active
+        opp_active_pkm = opp_team.active
+        if my_active_pkm and opp_active_pkm:
+            my_score += TYPE_CHART_MULTIPLIER[my_active_pkm.type][opp_active_pkm.type]
+            opp_score += TYPE_CHART_MULTIPLIER[opp_active_pkm.type][my_active_pkm.type]
+
+        # Considera le condizioni meteorologiche
+        if game_state.weather_condition == WeatherCondition.SUNNY:
+            my_score += 0.1
+        elif game_state.weather_condition == WeatherCondition.RAINY:
+            opp_score += 0.1
+
+        return my_score - opp_score
+    
+
+    '''
     def get_best_move(self, game_state):
         best_move = None
         best_value = float('-inf')
@@ -83,7 +122,7 @@ class MinMaxBattlePolicy:
                 break
 
         return best_move
-    
+    '''
 
 class MinMaxPlayer(BattlePolicy):
     def __init__(self, depth):
