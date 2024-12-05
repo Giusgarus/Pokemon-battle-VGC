@@ -9,6 +9,27 @@ from vgc.datatypes.Constants import DEFAULT_PKM_N_MOVES, DEFAULT_PARTY_SIZE, TYP
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
 from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
 
+class Node:
+    def __init__(self, env: PkmBattleEnv, parent: Node = None, actions: list[int] = None):
+        self.parent: Node = parent
+        self.actions = actions
+        self.children: list[Node] = []
+        self.env: PkmBattleEnv = env
+        self.is_leaf = True
+    
+    def get_actions(self,current_team) -> list[int]:
+        team = self.env.teams[current_team]
+        actions_pkm = team.active.moves
+        actions_list = []
+        for i in range(len(actions_pkm)):
+                actions_list.append([actions_pkm[i].move_id])
+        return actions_list
+
+
+
+
+
+
 class MinMaxBattlePolicy:
     def __init__(self, depth):
         self.depth = depth
