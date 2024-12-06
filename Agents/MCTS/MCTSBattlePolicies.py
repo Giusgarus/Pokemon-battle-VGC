@@ -93,7 +93,7 @@ class MonteCarloTreeSearch():
             return exploitation_term + (C * exploration_term)
         node = self.root
         while not node.is_leaf:
-            next_node = node.children[0]
+            next_node = node.children[0] # first initialization
             for n in node.children:
                 if UCB1(n) > UCB1(next_node):
                     next_node = n
