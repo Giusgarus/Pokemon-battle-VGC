@@ -3,6 +3,7 @@ from vgc.datatypes.Objects import PkmTeam, PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.util.generator.PkmRosterGenerators import RandomPkmRosterGenerator
 from vgc.util.generator.PkmTeamGenerators import RandomTeamFromRoster
+import vgc.competition.StandardPkmMoves
 
 
 def run_battle(player0: MCTSPlayer, player1: MCTSPlayer, env: PkmBattleEnv, mode='console') -> PkmTeam:
@@ -17,6 +18,7 @@ def run_battle(player0: MCTSPlayer, player1: MCTSPlayer, env: PkmBattleEnv, mode
     while not terminated:
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
+        print([my_action,opp_action]) # debug
         states, _, terminated, _, _ = env.step([my_action,opp_action])
         env.render()
     # Return the winner player of the battle
@@ -32,8 +34,8 @@ def main():
     pkm_roster = RandomPkmRosterGenerator().gen_roster()
     team_gen = RandomTeamFromRoster(roster=pkm_roster)
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
-    player0 = MCTSPlayer(name='Player 0', enable_print=True)
-    player1 = MCTSPlayer(name='Player 1', enable_print=True)
+    player0 = MCTSPlayer(name='Player 0')
+    player1 = MCTSPlayer(name='Player 1')
     full_team0: PkmFullTeam = team_gen.get_team()
     full_team1: PkmFullTeam = team_gen.get_team()
     team0 = full_team0.get_battle_team([0,1,2])
@@ -45,7 +47,7 @@ def main():
         encode=(player0.requires_encode(), player1.requires_encode())
     )
     # Perform "n_battles" battles
-    n_battles = 3
+    n_battles = 1
     for i in range(n_battles):
         print(f'\n\n\n==================================== Battle {i+1} ====================================\n')
         winner_player = run_battle(player0, player1, env)
