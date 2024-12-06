@@ -18,7 +18,6 @@ def run_battle(player0: MCTSPlayer, player1: MCTSPlayer, env: PkmBattleEnv, mode
     while not terminated:
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
-        print([my_action,opp_action]) # debug
         states, _, terminated, _, _ = env.step([my_action,opp_action])
         env.render()
     # Return the winner player of the battle

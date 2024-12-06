@@ -33,13 +33,13 @@ class MCTSNode:
         self.is_leaf = True
         self.is_simulated = is_simulated
     
-    def get_actions_combinations(self) -> list[int,int]:
+    def get_actions_combinations(self) -> list[list[int,int]]:
         '''
         Generates a list with all the combinations of the actions of the first team as type int (move_id field) with the \
         actions of the second one.
 
         Returns:
-        The list with all the combinations.
+        The list with all the combinations (= the index of the move in the list of the 4 moves of the pkm).
         '''
         my_team = self.env.teams[0]
         opp_team = self.env.teams[1]
@@ -48,7 +48,7 @@ class MCTSNode:
         combinations_list = []
         for i in range(len(actions_pkm1)):
             for j in range(len(actions_pkm2)):
-                combinations_list.append([actions_pkm1[i].move_id, actions_pkm2[j].move_id])
+                combinations_list.append([i,j])
         return combinations_list
     
     def backpropagation_update(self, winner_value: int) -> None:
@@ -117,7 +117,7 @@ class MonteCarloTreeSearch():
         if not node.is_leaf:
             return None, False
         # Retrieve the actions and generate all the possible actions' combinations
-        actions_comb_list: list[list[PkmMove,PkmMove]] = node.get_actions_combinations()
+        actions_comb_list: list[list[int,int]] = node.get_actions_combinations()
         # Case of number of expansions too high
         max_branching_factor = len(actions_comb_list)
         if n_expansions > max_branching_factor:
