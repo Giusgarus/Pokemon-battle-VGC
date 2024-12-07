@@ -6,8 +6,8 @@ import math
 class LogicPolicy(BattlePolicy):
 
   def __init__(self):
-        super().__init__()  # Chiama il costruttore di BattlePolicy
-        self.kb = KnowledgeBase()  # Inizializza la Knowledge Base 
+        super().__init__()  # Call the BattlePolicy constructor
+        self.kb = KnowledgeBase()  # KnowledgeBase initialization 
 
   def get_action(self, g: GameState) -> int:
 
@@ -46,16 +46,17 @@ class KnowledgeBase:
 
     # ------------------- KB INITIALIZATION -----------------------
     def __init__(self):
-        self.facts = {}  # Dizionario per memorizzare i fatti
+        self.facts = {}  # facts memorizated in dict
         self.rules = [
             self.rule_super_effective,
             self.rule_stab,
             self.rule_weather,
             self.rule_low_hp_switch,
+            self.one_pokemon_not_switch,
             self.rule_notsupereffective_switch,
             self.rule_offensive_moves
-        ]  # Lista di regole (funzioni o condizioni)
-        self.actions_priority = [ 0, 0, 0, 0, 0, 0 ] # Lista di priorità delle azioni
+        ]  # List of rules 
+        self.actions_priority = [ 0, 0, 0, 0, 0, 0 ] # List of actions priority
 
     def clear_actions_priority(self):
         """
@@ -178,6 +179,19 @@ class KnowledgeBase:
                 self.actions_priority[4] += 1
             else:
                 self.actions_priority[5] += 1
+
+        return None
+
+    def one_pokemon_not_switch(self, facts):
+        """
+        If we have one pokemon active not switch in every case.
+        """
+
+        my_hp_party = facts["my_hp_party"]
+
+        if my_hp_party[0] <=0 && my_hp_party[1] <= 0:
+            self.actions_priority[4] -= 10
+            self.actions_priority[5] -= 10
 
         return None
 
