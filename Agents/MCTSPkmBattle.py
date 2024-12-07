@@ -1,4 +1,7 @@
+from copy import deepcopy
 from MCTSBattlePolicies import MCTSPlayer
+from Logic_Agent import LogicPolicy
+from vgc.behaviour.BattlePolicies import RandomPlayer
 from vgc.datatypes.Objects import PkmTeam, PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.util.generator.PkmRosterGenerators import RandomPkmRosterGenerator
@@ -28,24 +31,25 @@ def main():
     pkm_roster = RandomPkmRosterGenerator().gen_roster()
     team_gen = RandomTeamFromRoster(roster=pkm_roster)
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
-    player0 = MCTSPlayer(name='Player 0', player_index=0, enable_print=True)
-    player1 = MCTSPlayer(name='Player 1', player_index=1)
-    full_team0: PkmFullTeam = team_gen.get_team()
-    full_team1: PkmFullTeam = team_gen.get_team()
-    team0 = full_team0.get_battle_team([0,1,2])
-    team1 = full_team1.get_battle_team([0,1,2])
-    # Create a Pokemon battle environment and reset it to default settings
-    env = PkmBattleEnv(
-        teams=(team0,team1),
-        debug=True,
-        encode=(player0.requires_encode(), player1.requires_encode())
-    )
+    player0 = MCTSPlayer(player_index=0, enable_print=False)
+    player1 = LogicPolicy()
     # Perform "n_battles" battles
-    n_battles = 1
+    n_battles = 5
     for i in range(n_battles):
+        full_team0: PkmFullTeam = team_gen.get_team()
+        full_team1: PkmFullTeam = team_gen.get_team()
+        team0 = full_team0.get_battle_team([0,1,2])
+        team1 = full_team1.get_battle_team([0,1,2])
+        # Create a Pokemon battle environment and reset it to default settings
+        env = PkmBattleEnv(
+            teams=(team0,team1),
+            debug=True,
+            encode=(player0.requires_encode(), player1.requires_encode())
+        )
         print(f'\n\n\n==================================== Battle {i+1} ====================================\n')
         winner_player = run_battle(player0, player1, env)
         print(f'Player {winner_player} won the battle!')
+        env.reset()
     return
 
 

@@ -237,9 +237,9 @@ class MCTSPlayer(BattlePolicy):
     Agent which uses the Monte Carlo Tree Search (MCTS) approach as policy to choose the actions.
     '''
 
-    def __init__(self, name: str, player_index: int, enable_print=False):
+    def __init__(self, player_index: int, enable_print=False):
         super().__init__()
-        self.name = name
+        self.name = f'Player {player_index}'
         self.player_index = player_index
         self.enable_print = enable_print
     
@@ -264,6 +264,7 @@ class MCTSPlayer(BattlePolicy):
             env=state_copy,
             enable_print=self.enable_print
         )
+        # Case of print
         if self.enable_print:
             print(f'Simulation phase for player {self.player_index}')
         # Perform N simulations

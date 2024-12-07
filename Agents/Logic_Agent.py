@@ -105,9 +105,9 @@ class KnowledgeBase:
         for i, move_type in enumerate(move_types):
             multiplier = TYPE_CHART_MULTIPLIER[move_type][opp_type]
             if multiplier > 1:  # Supereffective
-                self.action_priority[i] += 2
+                self.actions_priority[i] += 2
             if multiplier < 1: # Not Supereffective
-                self.action_priority[i] -= 2
+                self.actions_priority[i] -= 2
 
         return None
 
@@ -120,7 +120,7 @@ class KnowledgeBase:
 
         for i, move_type in enumerate(move_types):
             if my_type == move_type:  # Stab move
-                self.action_priority[i] += 1
+                self.actions_priority[i] += 1
 
         return None
 
@@ -137,20 +137,20 @@ class KnowledgeBase:
         for i, move_type in enumerate(move_types):
             if weather == 1: # SUNNY
                 if move_type == 1: # mossa fuoco
-                    self.action_priority[i] += 1
+                    self.actions_priority[i] += 1
                 if move_type == 2: # mossa acqua 
-                    self.action_priority[i] -= 1
+                    self.actions_priority[i] -= 1
             if weather == 2: # RAIN
                 if move_type == 2: # mossa acqua
-                    self.action_priority[i] += 1
+                    self.actions_priority[i] += 1
                 if move_type == 1: # mossa fuoco
-                    self.action_priority[i] -= 1
+                    self.actions_priority[i] -= 1
             if weather == 3: # SANDSTORM
                 if move_type == 12: # mossa roccia
-                    self.action_priority[i] += 1
+                    self.actions_priority[i] += 1
             if weather == 4: # HAIL
                 if move_type == 5: # mossa ghiaccio
-                    self.action_priority[i] += 1
+                    self.actions_priority[i] += 1
 
         return None
 
@@ -159,8 +159,8 @@ class KnowledgeBase:
         If we have less than 50% life, priority is given to a +1 switch, if we have less than 25% life, +2.
         """
 
-        my_hp = fatcs[my_hp]
-        my_max_hp = fatcs[my_max_hp]
+        my_hp = facts["my_hp"]
+        my_max_hp = facts["my_max_hp"]
         my_hp_party = facts["my_hp_party"]
 
         half_hp = math.ceil(my_max_hp / 2)
@@ -169,15 +169,15 @@ class KnowledgeBase:
         if my_hp <= quarter_hp:
             index_switch = my_hp_party.index(max(my_hp_party))
             if index_switch == 0:
-                self.action_priority[4] + = 2
+                self.actions_priority[4] += 2
             else:
-                self.action_priority[5] + = 2
+                self.actions_priority[5] += 2
         elif my_hp <= half_hp:
             index_switch = my_hp_party.index(max(my_hp_party))
             if index_switch == 0:
-                self.action_priority[4] + = 1
+                self.actions_priority[4] += 1
             else:
-                self.action_priority[5] + = 1
+                self.actions_priority[5] += 1
 
         return None
 
@@ -192,13 +192,13 @@ class KnowledgeBase:
         my_type_party = facts["my_type_party"]
 
         multiplier = TYPE_CHART_MULTIPLIER[opp_type][my_type]
-        if multipler > 1: # Opponent pokemon supereffective
+        if multiplier > 1: # Opponent pokemon supereffective
             multiplier_switch1 = TYPE_CHART_MULTIPLIER[opp_type][my_type_party[0]]
             multiplier_switch2 = TYPE_CHART_MULTIPLIER[opp_type][my_type_party[1]]
             if multiplier_switch2 > multiplier_switch1: # second pokemon have the highest type advantage
-                self.action_priority[5] + = 2 
+                self.actions_priority[5] += 2 
             else:
-                self.action_priority[4] + = 2
+                self.actions_priority[4] += 2
 
         return None
 
@@ -211,7 +211,7 @@ class KnowledgeBase:
 
         for i, move_target in enumerate(move_targets):
             if move_target == 1:  # mossa offensiva
-                self.action_priority[i] += 1
+                self.actions_priority[i] += 1
 
         return None
 
