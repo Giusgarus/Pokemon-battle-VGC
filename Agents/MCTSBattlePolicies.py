@@ -1,19 +1,10 @@
 from __future__ import annotations
-import tkinter
 from copy import deepcopy
-from threading import Thread, Event
-from tkinter import CENTER, DISABLED, NORMAL
-from types import CellType
-from typing import List
-
 import numpy as np
-from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
-
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
-from vgc.datatypes.Constants import DEFAULT_PKM_N_MOVES, DEFAULT_PARTY_SIZE, TYPE_CHART_MULTIPLIER, DEFAULT_N_ACTIONS
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
-from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
+from Logic_Agent import KnowledgeBase
 
 
 
@@ -34,13 +25,70 @@ class MCTSNode:
         self.is_leaf = True
         self.is_simulated = is_simulated
     
-    def get_actions_combinations(self) -> list[list[int,int]]:
+    def get_filtered_actions(self, my_team: PkmTeam, opp_team: PkmTeam, kb: KnowledgeBase, number_of_my_top_moves=1, number_of_opp_top_moves=1) -> list[list[int,int]]:
         '''
         Generates a list with all the combinations of the actions of the first team as type int (move_id field) with the \
         actions of the second one.
 
         Returns:
         The list with all the combinations (= the index of the move in the list of the 4 moves of the pkm).
+        '''
+        my_pkm = my_team.active
+        opp_pkm = opp_team.active
+        # Retrieve the best moves for me
+        kb.update_facts(
+            my_pkm_type=my_pkm.type,
+            opp_pkm_type=opp_pkm.type,
+            move_types=[my_pkm.moves[0].type, my_pkm.moves[1].type],
+            move_targets=[opp_pkm.moves[0].type, opp_pkm.moves[1].type,],
+            my_hp=my_pkm.hp,
+            my_max_hp=my_pkm.max_hp,
+            my_hp_party=[my_team.party[0].hp, my_team.party[1].hp],
+            my_type_party=[my_team.party[0].type, my_team.party[1].type],
+            weather=self.env.weather
+        )
+        kb.clear_actions_priority()
+        kb.evaluate()
+        actions_priority = kb.get_actions_priority()
+        my_top_actions_priority = sorted(
+            [(a,v) for a,v in enumerate(actions_priority)],
+            key=lambda x: x[1],
+            reverse=True
+        )
+        my_moves_with_higher_priority = [a for a,v in my_top_actions_priority]
+        my_moves_with_higher_priority = my_moves_with_higher_priority[:number_of_my_top_moves]
+        # Retrieve the best moves for the opponent
+        kb.update_facts(
+            my_pkm_type=opp_pkm.type,
+            opp_pkm_type=my_pkm.type,
+            move_types=[opp_pkm.moves[0].type, opp_pkm.moves[1].type],
+            move_targets=[my_pkm.moves[0].type, my_pkm.moves[1].type],
+            my_hp=opp_pkm.hp,
+            my_max_hp=opp_pkm.max_hp,
+            my_hp_party=[opp_team.party[0].hp, opp_team.party[1].hp],
+            my_type_party=[opp_team.party[0].type, opp_team.party[1].type],
+            weather=self.env.weather
+        )
+        kb.clear_actions_priority()
+        kb.evaluate()
+        actions_priority = kb.get_actions_priority()
+        opp_top_actions_priority = sorted(
+            [(a,v) for a,v in enumerate(actions_priority)],
+            key=lambda x: x[1],
+            reverse=True
+        )
+        opp_moves_with_higher_priority = [a for a,v in opp_top_actions_priority]
+        opp_moves_with_higher_priority = opp_moves_with_higher_priority[:number_of_opp_top_moves]
+        # Compute all the combinations of my best moves and the opponent best moves
+        combinations_list = []
+        for i in my_moves_with_higher_priority:
+            for j in opp_moves_with_higher_priority:
+                combinations_list.append([i,j])
+        return combinations_list
+
+    def get_all_actions_combinations(self):
+        '''
+        Generates a list with all the combinations of the actions of the first team with the actions of the second team.
         '''
         my_team = self.env.teams[0]
         opp_team = self.env.teams[1]
@@ -72,6 +120,7 @@ class MonteCarloTreeSearch():
 
     def __init__(self, player_index: int, env: PkmBattleEnv, enable_print: bool):
         self.node_counter = 1
+        self.kb = KnowledgeBase()
         self.root: MCTSNode = MCTSNode(id=self.node_counter, env=env)
         self.player_index = player_index
         self.enable_print = enable_print
@@ -105,13 +154,13 @@ class MonteCarloTreeSearch():
             print(f'Selected: {node.id}')
         return node
 
-    def expansion(self, node: MCTSNode, n_expansions=1) -> list[MCTSNode]:
+    def expansion(self, node: MCTSNode, number_of_top_moves=1) -> list[MCTSNode]:
         '''
         Implements the Expansion phase used to generate new nodes from the current one.
 
         Params:
         - node: the node on which perform the expansion.
-        - n_expansions: the number of children that should be expanded from the current node.
+        - number_of_top_moves: the number of best moves which are used for the expansion (branching factor = number_of_top_moves * 2).
 
         Returns:
         The list of the children generated from the current node.
@@ -120,15 +169,21 @@ class MonteCarloTreeSearch():
         if not node.is_leaf:
             return None, False
         # Retrieve the actions and generate all the possible actions' combinations
-        actions_comb_list: list[list[int,int]] = node.get_actions_combinations()
+        actions_comb_list: list[list[int,int]] = node.get_filtered_actions(
+            my_team=node.env.teams[self.player_index],
+            opp_team=node.env.teams[(self.player_index+1)%2],
+            kb=KnowledgeBase(),
+            number_of_my_top_moves=number_of_top_moves,
+            number_of_opp_top_moves=2
+        )
         # Case of number of expansions too high
         max_branching_factor = len(actions_comb_list)
-        if n_expansions > max_branching_factor:
-            n_expansions = max_branching_factor
-        #actions_comb_list = kb.filter_actions(actions_comb_list, cadinality=n_expansions)
-        # Generates "n_expansions" children nodes
+        if number_of_top_moves > max_branching_factor:
+            number_of_top_moves = max_branching_factor
+        #actions_comb_list = kb.filter_actions(actions_comb_list, cadinality=number_of_top_moves)
+        # Generates "number_of_top_moves" children nodes
         rand_gen_indexes = []
-        while len(rand_gen_indexes) != n_expansions:
+        while len(rand_gen_indexes) != number_of_top_moves:
             index = np.random.randint(0,max_branching_factor)
             if index not in rand_gen_indexes:
                 rand_gen_indexes.append(index)
@@ -144,7 +199,7 @@ class MonteCarloTreeSearch():
                 )
         node.is_leaf = False
         if self.enable_print:
-            print(f'Expanded {n_expansions} nodes: {node.id} -> {[n.id for n in node.children]}')
+            print(f'Expanded {number_of_top_moves} nodes: {node.id} -> {[n.id for n in node.children]}')
         return node.children
 
     def simulation(self, leafs: list[MCTSNode]) -> None:
@@ -164,7 +219,7 @@ class MonteCarloTreeSearch():
             Return:
             The next node chosen for a single step of the simulation.
             '''
-            actions_comb_list = n.get_actions_combinations()
+            actions_comb_list = n.get_all_actions_combinations()
             index = np.random.randint(0, len(actions_comb_list))
             next_env, _, _, _, _ = n.env.step(actions_comb_list[index])
             self.node_counter += 1
@@ -272,7 +327,7 @@ class MCTSPlayer(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection()
-            children = tree.expansion(leaf, n_expansions=3)
+            children = tree.expansion(leaf, number_of_top_moves=2)
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
