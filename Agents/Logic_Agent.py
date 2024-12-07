@@ -1,6 +1,8 @@
 from vgc.behaviour import BattlePolicy
 from vgc.datatypes.Constants import TYPE_CHART_MULTIPLIER
-from vgc.datatypes.Objects import GameState
+from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
+from vgc.datatypes.Types import PkmType, WeatherCondition
+
 import math
 
 class LogicPolicy(BattlePolicy):
@@ -77,7 +79,9 @@ class KnowledgeBase:
         return self.actions_priority
 
     # ------------------ UPDATE CURRENT FACTS -------------------
-    def update_facts(self, my_pkm_type, opp_pkm_type, move_types, move_targets, my_hp, my_max_hp, my_hp_party, my_type_party, weather):
+    def update_facts(self, my_pkm_type: PkmType, opp_pkm_type: PkmType, move_types List[PkmType], 
+                      move_targets: List[Int], my_hp: Float, my_max_hp: Float, my_hp_party: List[Float], 
+                      my_type_party: List[PkmType], weather: Weather):
         """
         Update facts with current data.
         """
@@ -96,7 +100,7 @@ class KnowledgeBase:
 
 
     # ------------ KB RULES: (Defined as class methods) -----------------
-    def rule_super_effective(self, facts):
+    def rule_super_effective(self, facts: Dict):
         """
         If there is a super effective move, increase priority +2, If there is a non-super effective move, decrease priority -2.
         """
@@ -112,7 +116,7 @@ class KnowledgeBase:
 
         return None
 
-    def rule_stab(self, facts):
+    def rule_stab(self, facts: Dict):
         """
         If there is a stab move, increase priority +1.
         """
@@ -125,37 +129,37 @@ class KnowledgeBase:
 
         return None
 
-    def rule_weather(self, facts):
+    def rule_weather(self, facts: Dict):
         """
         If there is a move suitable for the weather, increase priority +1, if it is not suitable, decrease by -1.
         """
         weather = facts["weather"]
         move_types = facts["move_types"]
 
-        if weather == 0:
+        if weather.condition == 0:
             return None
         
         for i, move_type in enumerate(move_types):
-            if weather == 1: # SUNNY
+            if weather.condition == 1: # SUNNY
                 if move_type == 1: # mossa fuoco
                     self.actions_priority[i] += 1
                 if move_type == 2: # mossa acqua 
                     self.actions_priority[i] -= 1
-            if weather == 2: # RAIN
+            if weather.condition == 2: # RAIN
                 if move_type == 2: # mossa acqua
                     self.actions_priority[i] += 1
                 if move_type == 1: # mossa fuoco
                     self.actions_priority[i] -= 1
-            if weather == 3: # SANDSTORM
+            if weather.condition == 3: # SANDSTORM
                 if move_type == 12: # mossa roccia
                     self.actions_priority[i] += 1
-            if weather == 4: # HAIL
+            if weather.condition == 4: # HAIL
                 if move_type == 5: # mossa ghiaccio
                     self.actions_priority[i] += 1
 
         return None
 
-    def rule_low_hp_switch(self, facts):
+    def rule_low_hp_switch(self, facts: Dict):
         """
         If we have less than 50% life, priority is given to a +1 switch, if we have less than 25% life, +2.
         """
@@ -182,7 +186,7 @@ class KnowledgeBase:
 
         return None
 
-    def one_pokemon_not_switch(self, facts):
+    def one_pokemon_not_switch(self, facts: Dict):
         """
         If we have one pokemon active not switch in every case.
         """
@@ -195,7 +199,7 @@ class KnowledgeBase:
 
         return None
 
-    def rule_notsupereffective_switch(self, facts):
+    def rule_notsupereffective_switch(self, facts: Dict):
         """
         If the opposing Pokemon is a super effective type,
         priority is given to the +2 switch with the Benched Pokemon with the highest type advantage.
@@ -216,7 +220,7 @@ class KnowledgeBase:
 
         return None
 
-    def rule_offensive_moves(self, facts):
+    def rule_offensive_moves(self, facts: Dict):
         """
         Priority given to offensive moves, so a +1 if they damage the enemy.
         """
