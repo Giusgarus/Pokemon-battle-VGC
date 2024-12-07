@@ -189,7 +189,7 @@ class KnowledgeBase:
 
         my_hp_party = facts["my_hp_party"]
 
-        if my_hp_party[0] <=0 && my_hp_party[1] <= 0:
+        if my_hp_party[0] <=0 and my_hp_party[1] <= 0:
             self.actions_priority[4] -= 10
             self.actions_priority[5] -= 10
 
