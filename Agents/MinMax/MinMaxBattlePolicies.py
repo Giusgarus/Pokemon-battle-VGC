@@ -104,25 +104,19 @@ class MinMaxBattlePolicy:
         return my_score - opp_score
     
 
-    '''
-    def get_best_move(self, game_state):
+    
+    def minimax(self, game_state):
         best_move = None
         best_value = float('-inf')
-        alpha = float('-inf')
-        beta = float('inf')
 
         for move in game_state.get_possible_moves():
             new_game_state = game_state.apply_move(move)
-            move_value = self.min(new_game_state, self.depth - 1, alpha, beta)
+            move_value = self.max(new_game_state, self.depth - 1)
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
-            alpha = max(alpha, move_value)
-            if beta <= alpha:
-                break
-
         return best_move
-    '''
+    
 
 class MinMaxPlayer(BattlePolicy):
     def __init__(self, depth):
@@ -131,4 +125,4 @@ class MinMaxPlayer(BattlePolicy):
         self.minmax = MinMaxBattlePolicy(depth)
 
     def choose_move(self, game_state: GameState) -> PkmMove:
-        return self.minmax.get_best_move(game_state)
+        return self.minmax.minmax(game_state)
