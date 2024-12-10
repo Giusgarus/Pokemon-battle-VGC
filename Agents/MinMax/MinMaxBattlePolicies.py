@@ -64,38 +64,60 @@ class MinMaxBattlePolicy:
         return max_eval
         '''
 
-    def evaluate_node(self, game_state: GameState) -> float:
-        my_team = game_state.teams[0]
-        opp_team = game_state.teams[1]
+    def evaluate_node(self, env: PkmBattleEnv) -> float:
+
+        my_team = env.teams[0]
+        opp_team = env.teams[1]
 
         my_score = 0
         opp_score = 0
 
         # Considera le win condition
-        if(game_state.is_winner()):
-            my_score += 100000
-        else:
-            opp_score += 100000
+        if(env.winner == 0):
+            my_score += 10000
+        elif(env.winner == 1):
+            opp_score += 10000
 
 
         # Considera la salute residua dei Pokémon
+        '''Ricontrolla punteggio HP normalizzato'''
         for pkm in my_team.get_pkm_list():
             my_score += 5*(pkm.hp / pkm.max_hp)
         for pkm in opp_team.get_pkm_list():
             opp_score += 5*(pkm.hp / pkm.max_hp)
 
         # Considera il numero di Pokémon rimasti
-        my_score += 500*len([pkm for pkm in my_team.pkm_list if pkm.current_hp > 0])
-        opp_score += 500*len([pkm for pkm in opp_team.pkm_list if pkm.current_hp > 0])
+        my_score += 500*len([pkm for pkm in my_team.get_pkm_list() if pkm.hp > 0])
+        opp_score += 500*len([pkm for pkm in opp_team.get_pkm_list() if pkm.hp > 0])
 
         # Considera le condizioni di stato
-        '''Qui devo differenziare meglio perché sonno e bruciatura non valgono uguali ad esempio'''
         for pkm in my_team.get_pkm_list():
-            if pkm.status != 0:
-                my_score -= 0.5
+            if pkm.status == 1:
+                my_score -= 100
+            elif pkm.status == 2:
+                my_score -= 150
+            elif pkm.status == 3:
+                my_score -= 180
+            elif pkm.status == 4:
+                my_score -= 200
+            elif pkm.status == 5:
+                my_score -= 250
+            elif pkm.status == 6:
+                my_score -= 100
         for pkm in opp_team.get_pkm_list():
-            if pkm.status != 0:
-                opp_score -= 0.5
+            if pkm.status == 1:
+                opp_score -= 100
+            elif pkm.status == 2:
+                opp_score -= 150
+            elif pkm.status == 3:
+                opp_score -= 180
+            elif pkm.status == 4:
+                opp_score -= 200
+            elif pkm.status == 5:
+                opp_score -= 250
+            elif pkm.status == 6:
+                opp_score -= 100
+
 
         # Considera il vantaggio di tipo
         my_active_pkm = my_team.active
@@ -111,19 +133,55 @@ class MinMaxBattlePolicy:
             elif TYPE_CHART_MULTIPLIER[opp_active_pkm.type][my_active_pkm.type] == .5:
                 opp_score -= 100
 
-        # Considera il vantaggio delle condizioni meteorologiche
-        '''
-        if stato favorevole a pokemon attivo:
-            my_score += 150
-        elif stato favorevole a pokemon attivo avversario:
-            opp_score += 150
-        '''
 
-        #Win or lose condition
-        if game_state.is_winner():
-            my_score += 100000
-        else:
-            opp_score += 10000
+        '''Blocco rigurdante vantaggi delel condizioni metereologiche'''
+        # Considera il vantaggio delle mosse per condizioni meteorologiche del team
+        weather = env.weather
+        for i,move in enumerate(my_team.active.moves):
+            move_type = move.type
+            if weather.condition == 1: # SUNNY
+                if move_type == 1: # mossa fuoco
+                    my_score += 150
+                elif move_type == 2: # mossa acqua 
+                    my_score -= 150
+            elif weather.condition == 2: # RAIN
+                if move_type == 2: # mossa fuoco
+                    my_score += 150
+                elif move_type == 1: # mossa acqua 
+                    my_score -= 150
+        # Considera il vantaggio delle mosse per condizioni meteorologiche del team avversario
+        for i,move in enumerate(opp_team.active.moves):
+            move_type = move.type
+            if weather.condition == 1: # SUNNY
+                if move_type == 1: # mossa fuoco
+                    opp_score += 150
+                elif move_type == 2: # mossa acqua 
+                    opp_score -= 150
+            elif weather.condition == 2: # RAIN
+                if move_type == 2: # mossa fuoco
+                    opp_score += 150
+                elif move_type == 1: # mossa acqua 
+                    opp_score -= 150
+        #Considera il vantaggio di tipo per le condizioni meteorologiche 
+        if weather.condition == 3: # SANDSTORM
+            if my_team.active.type == 12: # Pokemon roccia
+                my_score += 150
+            else:
+                my_score -= 150
+            if opp_team.active.type == 12:
+                opp_score += 150
+            else:
+                opp_score -= 150
+        elif weather.condition == 4: # HAIL
+            if my_team.active.type == 5: # Pokemon roccia
+                my_score += 150
+            else:
+                my_score -= 150
+            if opp_team.active.type == 5:
+                opp_score += 150
+            else:
+                opp_score -= 150
+                    
 
         return my_score - opp_score
     
