@@ -5,7 +5,17 @@ from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
 from Logic_Agent import KnowledgeBase
+from pyvis.network import Network
 
+
+
+def get_pkm_move_name(node: MCTSNode, action: int, player_index: int):
+    if action > 3:
+        move_name = f'Switch with {action-4}'
+    else:
+        moves: list[PkmMove] = node.env.teams[player_index].active.moves
+        move_name = moves[action].name
+    return move_name
 
 
 
@@ -19,22 +29,29 @@ class MCTSNode:
         self.env: PkmBattleEnv = env
         self.parent: MCTSNode = parent
         self.actions = actions
-        self.children: list[MCTSNode] = []
+        self.children: list = []
         self.utility_playouts = 0
         self.total_playouts = 0
         self.is_leaf = True
         self.is_simulated = is_simulated
     
-    def get_filtered_actions(self, my_team: PkmTeam, opp_team: PkmTeam, kb: KnowledgeBase, number_of_my_top_moves=1, number_of_opp_top_moves=1) -> list[list[int,int]]:
+    def get_top_actions(self, my_team: PkmTeam, opp_team: PkmTeam, number_of_my_top_moves=1, number_of_opp_top_moves=1) -> list[list[int,int]]:
         '''
-        Generates a list with all the combinations of the actions of the first team as type int (move_id field) with the \
-        actions of the second one.
+        Generates a list with all the combinations of the actions of the first team, as the index of the move, \
+        with the actions of the second one.
 
         Returns:
         The list with all the combinations (= the index of the move in the list of the 4 moves of the pkm).
+
+        Params:
+        - my_team: is the PkmTeam object of which are considered the top "number_of_my_top_moves" moves.
+        - opp_team: is the PkmTeam object of which are considered the top "number_of_opp_top_moves" moves.
+        - number_of_my_top_moves: is the number of moves which are considered for "my_team".
+        - number_of_opp_top_moves: is the number of moves which are considered for "opp_team".
         '''
         my_pkm = my_team.active
         opp_pkm = opp_team.active
+        kb = KnowledgeBase()
         # Retrieve the best moves for me
         kb.update_facts(
             my_pkm_type=my_pkm.type,
@@ -110,6 +127,17 @@ class MCTSNode:
         self.total_playouts += 1
         self.utility_playouts += winner_value
     
+    def add_child(self, child: MCTSNode):
+        '''
+        Add the new child and updates the index of the best child node to be chosen in Selection phase based on the UCB1 formula.
+
+        Params:
+        - child: the new child node to be added.
+        '''
+        self.children.append(child)
+        
+
+    
 
 
 
@@ -124,6 +152,8 @@ class MonteCarloTreeSearch():
         self.root: MCTSNode = MCTSNode(id=self.node_counter, env=env)
         self.player_index = player_index
         self.enable_print = enable_print
+        self.net = Network(height="750px", width="100%", directed=True)
+        self.net.add_node(self.root.id, label=f'{self.root.utility_playouts}/{self.root.total_playouts}')
 
     def selection(self) -> MCTSNode:
         '''
@@ -145,11 +175,11 @@ class MonteCarloTreeSearch():
             return exploitation_term + (C * exploration_term)
         node = self.root
         while not node.is_leaf:
-            next_node = node.children[0] # first initialization
-            for n in node.children:
-                if UCB1(n) > UCB1(next_node):
-                    next_node = n
-            node = next_node
+            best_child = node.children[0]
+            for child in node.children:
+                if UCB1(child) > UCB1(best_child):
+                    best_child = child
+            node = best_child
         if self.enable_print:
             print(f'Selected: {node.id}')
         return node
@@ -169,34 +199,40 @@ class MonteCarloTreeSearch():
         if not node.is_leaf:
             return None, False
         # Retrieve the actions and generate all the possible actions' combinations
-        actions_comb_list: list[list[int,int]] = node.get_filtered_actions(
+        actions_comb_list: list[list[int,int]] = node.get_top_actions(
             my_team=node.env.teams[self.player_index],
             opp_team=node.env.teams[(self.player_index+1)%2],
-            kb=KnowledgeBase(),
             number_of_my_top_moves=number_of_top_moves,
             number_of_opp_top_moves=2
         )
-        # Case of number of expansions too high
-        max_branching_factor = len(actions_comb_list)
-        if number_of_top_moves > max_branching_factor:
-            number_of_top_moves = max_branching_factor
-        #actions_comb_list = kb.filter_actions(actions_comb_list, cadinality=number_of_top_moves)
         # Generates "number_of_top_moves" children nodes
-        rand_gen_indexes = []
-        while len(rand_gen_indexes) != number_of_top_moves:
-            index = np.random.randint(0,max_branching_factor)
-            if index not in rand_gen_indexes:
-                rand_gen_indexes.append(index)
-                next_env, _, _, _, _ = node.env.step(actions_comb_list[index])
-                self.node_counter += 1
-                node.children.append(
-                    MCTSNode(
-                        id=self.node_counter,
-                        env=next_env[self.player_index],
-                        parent=node,
-                        actions=actions_comb_list[index]
-                    )
-                )
+        for actions in actions_comb_list:
+            next_env, _, _, _, _ = node.env.step(actions)
+            self.node_counter += 1
+            child = MCTSNode(
+                id=self.node_counter,
+                env=next_env[self.player_index],
+                parent=node,
+                actions=actions
+            )
+            node.add_child(child)
+            # Update of the visualization tree
+            self.net.add_node(child.id, label=f'{child.utility_playouts}/{child.total_playouts}')
+            my_move_name = get_pkm_move_name(
+                node=node,
+                action=actions[self.player_index],
+                player_index=self.player_index
+            )
+            opp_move_name = get_pkm_move_name(
+                node=node,
+                action=actions[(self.player_index+1)%2],
+                player_index=(self.player_index+1)%2
+            )
+            self.net.add_edge(
+                source=node.id,
+                to=child.id,
+                label=f'{my_move_name}|{opp_move_name}'
+            )
         node.is_leaf = False
         if self.enable_print:
             print(f'Expanded {number_of_top_moves} nodes: {node.id} -> {[n.id for n in node.children]}')
@@ -223,7 +259,7 @@ class MonteCarloTreeSearch():
             index = np.random.randint(0, len(actions_comb_list))
             next_env, _, _, _, _ = n.env.step(actions_comb_list[index])
             self.node_counter += 1
-            n.children.append(
+            n.add_child(
                 MCTSNode(
                     id=self.node_counter,
                     env=next_env[self.player_index],
@@ -263,10 +299,15 @@ class MonteCarloTreeSearch():
             backprop_nodes: list[MCTSNode] = []
             # Backpropagation pass
             while True:
+                # Update of the node's values
+                node.backpropagation_update(update_value)
+                for net_node in self.net.nodes:
+                    if net_node['id'] == node.id:
+                        net_node['label'] = f'{node.utility_playouts}/{node.total_playouts}'
+                        break
+                backprop_nodes.append(node)
                 # Case of root node
                 if node.parent is None:
-                    node.backpropagation_update(update_value)
-                    backprop_nodes.append(node)
                     break
                 # Case of node generated by the simulation
                 if node.is_simulated:
@@ -275,9 +316,6 @@ class MonteCarloTreeSearch():
                     del node
                     node = parent_node
                     continue
-                # Update of the node's values
-                node.backpropagation_update(update_value)
-                backprop_nodes.append(node)
                 node = node.parent
             # Case of print
             if self.enable_print:
@@ -297,9 +335,14 @@ class MCTSPlayer(BattlePolicy):
         self.name = f'Player {player_index}'
         self.player_index = player_index
         self.enable_print = enable_print
+        self.tree = None
     
     def __str__(self):
         print(self.name)
+    
+    def generate_tree(self, id: int):
+        if self.tree is not None:
+            self.tree.net.show(f'Agents/MCTS_tree/tree_{id}.html', notebook=False)
 
     def get_action(self, state: GameState) -> int:
         '''
@@ -327,7 +370,7 @@ class MCTSPlayer(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection()
-            children = tree.expansion(leaf, number_of_top_moves=2)
+            children = tree.expansion(leaf, number_of_top_moves=3)
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
@@ -340,6 +383,7 @@ class MCTSPlayer(BattlePolicy):
             this_node_value = child.utility_playouts / child.total_playouts
             if this_node_value > best_node_value:
                 best_node = child
+        self.tree = tree
         return best_node.actions[0]
 
 

@@ -164,3 +164,6 @@ Agents/.DS_Store
 #.idea/
 
 Agents/.DS_Store
+
+# HTML files with generated trees
+Agents/MCTS_trees/
