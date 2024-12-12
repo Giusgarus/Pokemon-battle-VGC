@@ -152,7 +152,7 @@ class MonteCarloTreeSearch():
         self.root: MCTSNode = MCTSNode(id=self.node_counter, env=env)
         self.player_index = player_index
         self.enable_print = enable_print
-        self.net = Network(height="750px", width="100%", directed=True)
+        self.net = Network(height="1200px", width="1600px", directed=True)
         self.net.add_node(self.root.id, label=f'{self.root.utility_playouts}/{self.root.total_playouts}')
 
     def selection(self) -> MCTSNode:
@@ -342,7 +342,22 @@ class MCTSPlayer(BattlePolicy):
     
     def generate_tree(self, id: int):
         if self.tree is not None:
-            self.tree.net.show(f'Agents/MCTS_tree/tree_{id}.html', notebook=False)
+            self.tree.net.set_options("""
+                var options = {
+                "physics": {
+                    "enabled": true,
+                    "barnesHut": {
+                    "gravitationalConstant": -3000,
+                    "centralGravity": 0.1,
+                    "springLength": 150,
+                    "springConstant": 0.04
+                    },
+                    "minVelocity": 1
+                }
+                }
+                """
+            )
+            self.tree.net.show(f'Agents/MCTS_trees/tree_{self.player_index}-{id}.html', notebook=False)
 
     def get_action(self, state: GameState) -> int:
         '''
