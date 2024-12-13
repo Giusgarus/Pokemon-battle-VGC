@@ -22,7 +22,7 @@ def run_battle(player0: MCTSPlayer, player1: RandomPlayer, env: PkmBattleEnv, mo
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
         player0.generate_tree(id=index)
-        #player1.generate_tree(id=f'1-{index}')
+        player1.generate_tree(id=index)
         states, _, terminated, _, _ = env.step([my_action,opp_action])
         env.render()
         index += 1
