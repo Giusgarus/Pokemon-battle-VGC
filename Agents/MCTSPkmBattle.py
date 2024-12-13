@@ -35,7 +35,7 @@ def main():
     team_gen = RandomTeamFromRoster(roster=pkm_roster)
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
     player0 = MCTSPlayer(player_index=0, enable_print=False)
-    player1 = MCTSPlayer(player_index=1, enable_print=False)
+    player1 = LogicPolicy()
     # Perform "n_battles" battles
     n_battles = 1
     for i in range(n_battles):

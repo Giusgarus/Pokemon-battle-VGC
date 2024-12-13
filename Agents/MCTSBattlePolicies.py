@@ -424,7 +424,7 @@ class MCTSPlayer(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection()
-            children = tree.expansion(leaf, number_of_top_moves=3, number_opp_top_moves=2)
+            children = tree.expansion(leaf, number_my_top_moves=3, number_opp_top_moves=2)
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
