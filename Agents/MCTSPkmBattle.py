@@ -1,14 +1,14 @@
 from copy import deepcopy
 from MCTSBattlePolicies import MCTSPlayer
 from Logic_Agent import LogicPolicy
-from vgc.behaviour.BattlePolicies import RandomPlayer
+from vgc.behaviour.BattlePolicies import RandomPlayer, BattlePolicy
 from vgc.datatypes.Objects import PkmTeam, PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.util.generator.PkmRosterGenerators import RandomPkmRosterGenerator
 from vgc.util.generator.PkmTeamGenerators import RandomTeamFromRoster
 
 
-def run_battle(player0: MCTSPlayer, player1: RandomPlayer, env: PkmBattleEnv, mode='console') -> PkmTeam:
+def run_battle(player0: MCTSPlayer, player1: BattlePolicy, env: PkmBattleEnv, mode='console') -> PkmTeam:
     '''
     Performs a single battle between two players and their teams in the environment passed as parameter.
     '''
@@ -22,7 +22,6 @@ def run_battle(player0: MCTSPlayer, player1: RandomPlayer, env: PkmBattleEnv, mo
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
         player0.generate_tree(id=index)
-        player1.generate_tree(id=index)
         states, _, terminated, _, _ = env.step([my_action,opp_action])
         env.render()
         index += 1
