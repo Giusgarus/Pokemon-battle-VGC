@@ -29,7 +29,7 @@ class MCTSNode:
         self.env: PkmBattleEnv = env
         self.parent: MCTSNode = parent
         self.actions = actions
-        self.children: list = []
+        self.children: list[MCTSNode] = []
         self.utility_playouts = 0
         self.total_playouts = 0
         self.is_leaf = True
@@ -146,14 +146,22 @@ class MonteCarloTreeSearch():
     Class which handles the Monte Carlo Tree search.
     '''
 
-    def __init__(self, player_index: int, env: PkmBattleEnv, enable_print: bool):
+    def __init__(self, player_index: int, env: PkmBattleEnv, enable_print: bool, enable_tree_visualization=False):
         self.node_counter = 1
         self.kb = KnowledgeBase()
         self.root: MCTSNode = MCTSNode(id=self.node_counter, env=env)
         self.player_index = player_index
         self.enable_print = enable_print
-        self.net = Network(height="1200px", width="1600px", directed=True)
-        self.net.add_node(self.root.id, label=f'{self.root.utility_playouts}/{self.root.total_playouts}')
+        self.enable_tree_visualization = enable_tree_visualization
+        if not self.enable_tree_visualization:
+            self.net = None
+        else:
+            self.net = Network(height="1800px", width="1800px", directed=True)
+            self.net.add_node(
+                self.root.id,
+                label=f'{self.root.utility_playouts}/{self.root.total_playouts}',
+                color='#D32F2F'
+            )
 
     def selection(self) -> MCTSNode:
         '''
@@ -184,7 +192,7 @@ class MonteCarloTreeSearch():
             print(f'Selected: {node.id}')
         return node
 
-    def expansion(self, node: MCTSNode, number_of_top_moves=1) -> list[MCTSNode]:
+    def expansion(self, node: MCTSNode, number_my_top_moves=1, number_opp_top_moves=1) -> list[MCTSNode]:
         '''
         Implements the Expansion phase used to generate new nodes from the current one.
 
@@ -202,13 +210,14 @@ class MonteCarloTreeSearch():
         actions_comb_list: list[list[int,int]] = node.get_top_actions(
             my_team=node.env.teams[self.player_index],
             opp_team=node.env.teams[(self.player_index+1)%2],
-            number_of_my_top_moves=number_of_top_moves,
-            number_of_opp_top_moves=2
+            number_of_my_top_moves=number_my_top_moves,
+            number_of_opp_top_moves=number_opp_top_moves
         )
         # Generates "number_of_top_moves" children nodes
         for actions in actions_comb_list:
             next_env, _, _, _, _ = node.env.step(actions)
             self.node_counter += 1
+            # Add the child to the tree
             child = MCTSNode(
                 id=self.node_counter,
                 env=next_env[self.player_index],
@@ -217,25 +226,30 @@ class MonteCarloTreeSearch():
             )
             node.add_child(child)
             # Update of the visualization tree
-            self.net.add_node(child.id, label=f'{child.utility_playouts}/{child.total_playouts}')
-            my_move_name = get_pkm_move_name(
-                node=node,
-                action=actions[self.player_index],
-                player_index=self.player_index
-            )
-            opp_move_name = get_pkm_move_name(
-                node=node,
-                action=actions[(self.player_index+1)%2],
-                player_index=(self.player_index+1)%2
-            )
-            self.net.add_edge(
-                source=node.id,
-                to=child.id,
-                label=f'{my_move_name}|{opp_move_name}'
-            )
+            if self.enable_tree_visualization:
+                self.net.add_node(
+                    n_id=child.id,
+                    label=f'{child.utility_playouts}/{child.total_playouts}',
+                    color='#2196F3'
+                )
+                my_move_name = get_pkm_move_name(
+                    node=node,
+                    action=actions[self.player_index],
+                    player_index=self.player_index
+                )
+                opp_move_name = get_pkm_move_name(
+                    node=node,
+                    action=actions[(self.player_index+1)%2],
+                    player_index=(self.player_index+1)%2
+                )
+                self.net.add_edge(
+                    source=node.id,
+                    to=child.id,
+                    label=f'{my_move_name}|{opp_move_name}'
+                )
         node.is_leaf = False
         if self.enable_print:
-            print(f'Expanded {number_of_top_moves} nodes: {node.id} -> {[n.id for n in node.children]}')
+            print(f'Expanded {number_my_top_moves} nodes: {node.id} -> {[n.id for n in node.children]}')
         return node.children
 
     def simulation(self, leafs: list[MCTSNode]) -> None:
@@ -259,15 +273,36 @@ class MonteCarloTreeSearch():
             index = np.random.randint(0, len(actions_comb_list))
             next_env, _, _, _, _ = n.env.step(actions_comb_list[index])
             self.node_counter += 1
-            n.add_child(
-                MCTSNode(
-                    id=self.node_counter,
-                    env=next_env[self.player_index],
-                    parent=n,
-                    actions=actions_comb_list[index],
-                    is_simulated=True
-                )
+            simulated_child = MCTSNode(
+                id=self.node_counter,
+                env=next_env[self.player_index],
+                parent=n,
+                actions=actions_comb_list[index],
+                is_simulated=True
             )
+            n.add_child(simulated_child)
+            # Update the visualization tree
+            if self.enable_tree_visualization:
+                self.net.add_node(
+                    n_id=simulated_child.id,
+                    label=f'{node.utility_playouts}/{node.total_playouts}',
+                    color='#BBDEFB'
+                )
+                my_move_name = get_pkm_move_name(
+                    node=node,
+                    action=actions_comb_list[index][self.player_index],
+                    player_index=self.player_index
+                )
+                opp_move_name = get_pkm_move_name(
+                    node=node,
+                    action=actions_comb_list[index][(self.player_index+1)%2],
+                    player_index=(self.player_index+1)%2
+                )
+                self.net.add_edge(
+                    source=node.id,
+                    to=simulated_child.id,
+                    label=f'{my_move_name}|{opp_move_name}'
+                )
             return n.children[0]
         # For each leaf perform a random simulation
         return_nodes: list[MCTSNode] = []
@@ -301,11 +336,13 @@ class MonteCarloTreeSearch():
             while True:
                 # Update of the node's values
                 node.backpropagation_update(update_value)
-                for net_node in self.net.nodes:
-                    if net_node['id'] == node.id:
-                        net_node['label'] = f'{node.utility_playouts}/{node.total_playouts}'
-                        break
                 backprop_nodes.append(node)
+                # Update the visualization tree
+                if self.enable_tree_visualization:
+                    for net_node in self.net.nodes:
+                        if net_node['id'] == node.id:
+                            net_node['label'] = f'{node.utility_playouts}/{node.total_playouts}'
+                            break
                 # Case of root node
                 if node.parent is None:
                     break
@@ -313,6 +350,7 @@ class MonteCarloTreeSearch():
                 if node.is_simulated:
                     parent_node = node.parent
                     parent_node.children.remove(node)
+                    #self.net.nodes.remove(node.id)
                     del node
                     node = parent_node
                     continue
@@ -341,7 +379,7 @@ class MCTSPlayer(BattlePolicy):
         print(self.name)
     
     def generate_tree(self, id: int):
-        if self.tree is not None:
+        if self.tree is not None and self.tree.enable_tree_visualization:
             self.tree.net.set_options("""
                 var options = {
                 "physics": {
@@ -352,7 +390,7 @@ class MCTSPlayer(BattlePolicy):
                     "springLength": 150,
                     "springConstant": 0.04
                     },
-                    "minVelocity": 1
+                    "minVelocity": 0.75
                 }
                 }
                 """
@@ -370,12 +408,13 @@ class MCTSPlayer(BattlePolicy):
         The node with higher utility value computed by simulating moves with the MCTS algorithm.
         '''
         # Initializations
-        N = 100
+        N = 50
         state_copy: GameState = deepcopy(state)
         tree = MonteCarloTreeSearch(
             player_index=self.player_index,
             env=state_copy,
-            enable_print=self.enable_print
+            enable_print=self.enable_print,
+            enable_tree_visualization=True
         )
         # Case of print
         if self.enable_print:
@@ -385,7 +424,7 @@ class MCTSPlayer(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection()
-            children = tree.expansion(leaf, number_of_top_moves=3)
+            children = tree.expansion(leaf, number_of_top_moves=3, number_opp_top_moves=2)
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
@@ -396,6 +435,10 @@ class MCTSPlayer(BattlePolicy):
         for child in tree.root.children:
             best_node_value = best_node.utility_playouts / best_node.total_playouts
             this_node_value = child.utility_playouts / child.total_playouts
+            # Case of switch action skipped if there is a difference < 0.3 between utility values
+            if child.actions[self.player_index] > 3 and abs(best_node_value - this_node_value) < 0.05:
+                continue
+            # Case of child with better utility value
             if this_node_value > best_node_value:
                 best_node = child
         self.tree = tree
