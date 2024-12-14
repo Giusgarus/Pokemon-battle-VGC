@@ -15,12 +15,12 @@ agents_dict = {
     'MCTS': MCTSPlayer()
 }
 
-def write_statistics(statistics_string: str, params: dict, mode='a'):
+def write_statistics(statistics_str: str, params: dict, mode='a'):
     dir_path = ''
     for elem in sys.argv[1].split('/')[:-1]:
         dir_path += elem + '/'
     with open(dir_path+'statistics.txt', mode) as f:
-        f.write(statistics_string)
+        f.write(statistics_str)
         f.write(f'Parameters:\n')
         for key, value in params.items():
             f.write(f'\t{key}: {value}\n')
@@ -63,7 +63,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
         return None, None
     return agents_dict[args[2]], agents_dict[args[3]]
 
-def get_params_combinations(params: dict) -> dict:
+def get_params_combinations(params: dict) -> list[dict]:
         '''
             Creates and saves into the class instance a list with all the possible combinations of parameters \
             in the dictionary \"params\".

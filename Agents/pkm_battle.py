@@ -1,4 +1,5 @@
 from copy import deepcopy
+import sys
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.datatypes.Objects import PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
@@ -16,8 +17,15 @@ def main():
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
+    # Initialize statistics file
+    write_statistics(
+        statistics_str=f'--- Statistics for {sys.argv[2]} ---\n\n',
+        params=params,
+        mode='w'
+    )
     # Execute N_BATTLES for each parameters combination
-    for i, params in enumerate(get_params_combinations(params_space)):
+    combinations_list: list[dict] = get_params_combinations(params_space)
+    for i, params in enumerate(combinations_list):
         player0.set_parameters(params)
         # Perform "n_battles" battles
         player0_winrate = 0
@@ -42,11 +50,11 @@ def main():
             if winner_player == 0:
                 player0_winrate += 1
             env.reset()
-        print(f'\n\nPlayer 0 winrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%\n')
+        print(f'\n>>> Winrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%\n>>> Combination: {i+1}/{len(combinations_list)}\n')
         write_statistics(
-            statistics_string=f'\n\nWinrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%\n',
+            statistics_str=f'\n\nWinrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%\n',
             params=params,
-            mode='w' if i == 0 else 'a'
+            mode='a'
         )
     return
 
