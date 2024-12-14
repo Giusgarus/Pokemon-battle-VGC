@@ -107,7 +107,10 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
     while not terminated:
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
-        player0.generate_tree(id=index)
+        try:
+            player0.generate_tree(id=index)
+        except:
+            pass
         states, _, terminated, _, _ = env.step([my_action,opp_action])
         env.render()
         index += 1
