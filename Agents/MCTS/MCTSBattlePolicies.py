@@ -1,6 +1,8 @@
 from __future__ import annotations
 from copy import deepcopy
+import os
 import numpy as np
+from util import get_parameters_from_env
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
@@ -405,6 +407,9 @@ class MCTSPlayer(BattlePolicy):
                 """
             )
             self.tree.net.show(f'Agents/MCTS/MCTS_trees/tree_{self.player_index}-{id}.html', notebook=False)
+    
+    def set_parameters(self, params: dict):
+        self.params = params
 
     def get_action(self, state: GameState) -> int:
         '''
@@ -445,11 +450,11 @@ class MCTSPlayer(BattlePolicy):
             best_node_utility = best_node.utility_playouts / best_node.total_playouts
             this_node_utility = child.utility_playouts / child.total_playouts
             # Case of switch action skipped if there is a difference < 0.3 between utility values
-            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < 0.05:
+            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['HEURISTIC_COND1']:
                 continue
             # Case of node with similar utility and child with total number of playouts < half the best node's total number of playouts
-            if best_node.total_playouts < child.total_playouts and 2*best_node.total_playouts < child.total_playouts \
-                and abs(this_node_utility - best_node_utility) < 0.03:
+            if best_node.total_playouts < child.total_playouts and self.params['HEURISTIC_COND2_1']*best_node.total_playouts < child.total_playouts \
+                and abs(this_node_utility - best_node_utility) < self.params['HEURISTIC_COND2_2']:
                 best_node = child
                 continue
             # Case of child with better utility value

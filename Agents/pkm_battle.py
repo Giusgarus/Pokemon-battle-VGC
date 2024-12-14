@@ -16,8 +16,9 @@ def main():
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
-    # 
+    # Execute N_BATTLES for each parameters combination
     for i, params in enumerate(get_params_combinations(params_space)):
+        player0.set_parameters(params)
         # Perform "n_battles" battles
         player0_winrate = 0
         for j in range(params['N_BATTLES']):
@@ -36,8 +37,8 @@ def main():
                 encode=(player0.requires_encode(), player1.requires_encode())
             )
             print(f'\n\n\n==================================== Battle {j+1} ====================================\n')
-            winner_player = run_battle(player0, player1, env)
-            print(f'Player 0 won {player0_winrate}/{j+1} battles.')
+            winner_player = run_battle(player0, player1, env, mode='no_output')
+            print(f'Player 0 won {player0_winrate}/{j+1} battles ({player0_winrate/params["N_BATTLES"]*100:.2f}%)')
             if winner_player == 0:
                 player0_winrate += 1
             env.reset()
