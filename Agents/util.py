@@ -9,10 +9,10 @@ from Random_Agent import RandomPolicy
 
 
 agents_dict = {
-    'Random': RandomPolicy(),
+    'Random': RandomPolicy(player_index=1),
     'Logic': LogicPolicy(),
     'MiniMax': None,
-    'MCTS': MCTSPlayer(player_index=1)
+    'MCTS': MCTSPlayer()
 }
 
 def write_statistics(statistics_string: str, params: dict, mode='a'):
@@ -112,7 +112,7 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
         except:
             pass
         states, _, terminated, _, _ = env.step([my_action,opp_action])
-        env.render()
+        env.render(mode)
         index += 1
     # Return the winner player of the battle
     return env.winner
