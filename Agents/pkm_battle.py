@@ -38,7 +38,7 @@ def main():
             )
             print(f'\n\n\n==================================== Battle {j+1} ====================================\n')
             winner_player = run_battle(player0, player1, env, mode='no_output')
-            print(f'Player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/j+1)*100:.2f}%)')
+            print(f'Player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
             if winner_player == 0:
                 player0_winrate += 1
             env.reset()
