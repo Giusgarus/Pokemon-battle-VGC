@@ -36,7 +36,7 @@ def main():
                 debug=True,
                 encode=(player0.requires_encode(), player1.requires_encode())
             )
-            print(f'\n\n\n==================================== Battle {j+1} ====================================\n')
+            print(f'\n==================================== Battle {j+1} ====================================\n')
             winner_player = run_battle(player0, player1, env, mode='no_output')
             print(f'Player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
             if winner_player == 0:
