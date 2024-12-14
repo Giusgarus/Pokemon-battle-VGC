@@ -1,8 +1,6 @@
 from __future__ import annotations
 from copy import deepcopy
-import os
 import numpy as np
-from util import get_parameters_from_env
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
