@@ -30,7 +30,7 @@ def run_statistics_battle(player0: MCTSPlayer, player1: MCTSPlayer, env: PkmBatt
 def main():
     # Perform "n_battles" battles
     enable_print = True
-    n_battles = 10
+    n_battles = 100
     avg_moves = 0
     winner_pkm_team: PkmTeam = None
     env: PkmBattleEnv = None
@@ -40,8 +40,8 @@ def main():
         pkm_roster = RandomPkmRosterGenerator().gen_roster()
         team_gen = RandomTeamFromRoster(roster=pkm_roster)
         # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
-        player0 = MCTSPlayer(player_index=0)
-        player1 = MCTSPlayer(player_index=1)
+        player0 = MCTSPlayer(player_index=0, enable_print=False, enable_tree_visualization=False)
+        player1 = MCTSPlayer(player_index=1, enable_print=False, enable_tree_visualization=False)
         full_team0: PkmFullTeam = team_gen.get_team()
         full_team1: PkmFullTeam = team_gen.get_team()
         team0 = full_team0.get_battle_team([0,1,2])

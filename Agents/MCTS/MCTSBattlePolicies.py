@@ -30,8 +30,8 @@ class MCTSNode:
         self.parent: MCTSNode = parent
         self.actions = actions
         self.children: list[MCTSNode] = []
-        self.utility_playouts = 0
-        self.total_playouts = 0
+        self.utility_playouts: float = 0
+        self.total_playouts: int = 0
         self.is_leaf = True
         self.is_simulated = is_simulated
     
@@ -117,15 +117,23 @@ class MCTSNode:
                 combinations_list.append([i,j])
         return combinations_list
     
-    def backpropagation_update(self, winner_value: int) -> None:
+    def backpropagation_update(self, winner_value: int, player_index: int) -> None:
         '''
         Updated the fields of the node to reflect the result of the simulation passed as parameter.
 
         Params:
         - winner_value: the value which indentifies the winner in the terminal state (1 if team 0 wins, 0 otherwise).
         '''
+        if winner_value == 0:
+            hp_residue_percentage = 0
+        else:
+            hp_residue = sum([pkm.hp for pkm in self.env.teams[player_index].party] + [self.env.teams[player_index].active.hp])
+            max_hp = sum([pkm.max_hp for pkm in self.env.teams[player_index].party] + [self.env.teams[player_index].active.max_hp])
+            hp_residue_percentage = hp_residue / max_hp
+        winrate_weight = 1
+        hp_residue_weight = 1 - winrate_weight
+        self.utility_playouts += round(number=float((winner_value * winrate_weight) + (hp_residue_percentage * hp_residue_weight)), ndigits=2)
         self.total_playouts += 1
-        self.utility_playouts += winner_value
     
     def add_child(self, child: MCTSNode):
         '''
@@ -179,7 +187,7 @@ class MonteCarloTreeSearch():
             '''
             exploitation_term = n.utility_playouts/n.total_playouts
             exploration_term = np.sqrt(np.log(n.parent.total_playouts) / n.total_playouts)
-            C = 1.5
+            C = 1.6
             return exploitation_term + (C * exploration_term)
         node = self.root
         while not node.is_leaf:
@@ -330,12 +338,12 @@ class MonteCarloTreeSearch():
             print('Backpropagation phase')
         # Performs a backpropagation for each termination node
         for node in nodes:
-            update_value = 1 if self.player_index == node.env.winner else 0
+            winner_value = 1 if self.player_index == node.env.winner else 0
             backprop_nodes: list[MCTSNode] = []
             # Backpropagation pass
             while True:
                 # Update of the node's values
-                node.backpropagation_update(update_value)
+                node.backpropagation_update(winner_value, self.player_index)
                 backprop_nodes.append(node)
                 # Update the visualization tree
                 if self.enable_tree_visualization:
@@ -368,11 +376,12 @@ class MCTSPlayer(BattlePolicy):
     Agent which uses the Monte Carlo Tree Search (MCTS) approach as policy to choose the actions.
     '''
 
-    def __init__(self, player_index: int, enable_print=False):
+    def __init__(self, player_index=0, enable_print=False, enable_tree_visualization=False):
         super().__init__()
         self.name = f'Player {player_index}'
         self.player_index = player_index
         self.enable_print = enable_print
+        self.enable_tree_visualization = enable_tree_visualization
         self.tree = None
     
     def __str__(self):
@@ -395,7 +404,7 @@ class MCTSPlayer(BattlePolicy):
                 }
                 """
             )
-            self.tree.net.show(f'Agents/MCTS_trees/tree_{self.player_index}-{id}.html', notebook=False)
+            self.tree.net.show(f'Agents/MCTS/MCTS_trees/tree_{self.player_index}-{id}.html', notebook=False)
 
     def get_action(self, state: GameState) -> int:
         '''
@@ -408,13 +417,13 @@ class MCTSPlayer(BattlePolicy):
         The node with higher utility value computed by simulating moves with the MCTS algorithm.
         '''
         # Initializations
-        N = 50
+        N = 100
         state_copy: GameState = deepcopy(state)
         tree = MonteCarloTreeSearch(
             player_index=self.player_index,
             env=state_copy,
             enable_print=self.enable_print,
-            enable_tree_visualization=True
+            enable_tree_visualization=self.enable_tree_visualization
         )
         # Case of print
         if self.enable_print:
@@ -424,7 +433,7 @@ class MCTSPlayer(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection()
-            children = tree.expansion(leaf, number_my_top_moves=3, number_opp_top_moves=2)
+            children = tree.expansion(leaf, number_my_top_moves=2, number_opp_top_moves=3)
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
@@ -433,13 +442,18 @@ class MCTSPlayer(BattlePolicy):
         # Choose the move
         best_node = tree.root.children[0]
         for child in tree.root.children:
-            best_node_value = best_node.utility_playouts / best_node.total_playouts
-            this_node_value = child.utility_playouts / child.total_playouts
+            best_node_utility = best_node.utility_playouts / best_node.total_playouts
+            this_node_utility = child.utility_playouts / child.total_playouts
             # Case of switch action skipped if there is a difference < 0.3 between utility values
-            if child.actions[self.player_index] > 3 and abs(best_node_value - this_node_value) < 0.05:
+            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < 0.05:
+                continue
+            # Case of node with similar utility and child with total number of playouts < half the best node's total number of playouts
+            if best_node.total_playouts < child.total_playouts and 2*best_node.total_playouts < child.total_playouts \
+                and abs(this_node_utility - best_node_utility) < 0.03:
+                best_node = child
                 continue
             # Case of child with better utility value
-            if this_node_value > best_node_value:
+            if this_node_utility > best_node_utility:
                 best_node = child
         self.tree = tree
         return best_node.actions[0]
