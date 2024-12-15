@@ -14,16 +14,10 @@ def main():
     if agents[0] is None or agents[1] is None: return
     if not load_env(): return
     params_space = get_parameters_from_env()
+    
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
-    # Initialize statistics file
-    write_statistics(
-        filepath='Agents/MCTS/statistics.txt',
-        statistics_str=f'--- Statistics for {sys.argv[2]} ---\n\n',
-        params={},
-        mode='w'
-    )
     # Execute N_BATTLES for each parameters combination
     combinations_list: list[dict] = get_params_combinations(params_space)
     for i, params in enumerate(combinations_list):
@@ -45,15 +39,15 @@ def main():
                 debug=True,
                 encode=(player0.requires_encode(), player1.requires_encode())
             )
-            print(f'\n==================================== Battle {j+1} ====================================\n')
+            print(f'\n====================== Battle {j+1} ======================\n')
             winner_player = run_battle(player0, player1, env, mode='no_output')
             if winner_player == 0:
                 player0_winrate += 1
             print(f'Player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
             env.reset()
-        print(f'\n>>> Winrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%\n>>> Combination: {i+1}/{len(combinations_list)}\n')
+        print(f'\n>>> Winrate: {player0_winrate/params["N_BATTLES"]*100:.2f}%\n>>> Combination: {i+1}/{len(combinations_list)}\n>>> Parameters: {params}\n')
         write_statistics(
-            statistics_str=f'\n\nWinrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%\n',
+            winrate_str=f'Winrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%',
             params=params,
             mode='a'
         )

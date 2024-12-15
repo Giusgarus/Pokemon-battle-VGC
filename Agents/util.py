@@ -15,14 +15,46 @@ agents_dict = {
     'MCTS': MCTSPlayer()
 }
 
-def write_statistics(filepath: str, statistics_str: str, params: dict, mode='a'):
-    with open(filepath, mode) as f:
-        f.write(statistics_str)
-        if params == {}:
-            return
-        f.write(f'Parameters:\n')
-        for key, value in params.items():
-            f.write(f'\t{key}: {value}\n')
+def retrive_arg(flag: str, n_next_args=1) -> str | list:
+    args = sys.argv
+    for i, arg in enumerate(args):
+        if arg == flag:
+            try:
+                args_to_ret = []
+                for arg_to_ret in args[i+1:i+n_next_args+1]:
+                    args_to_ret.append(arg_to_ret)
+                return args_to_ret
+            except:
+                break
+    return []
+
+def write_statistics(winrate_str: str, params: dict, mode='a'):
+    args = retrive_arg(flag='-s')
+    # Cases of exit
+    if args == []:
+        return
+    if params == {}:
+        return
+    # Create the parameters' string
+    params_str = 'Parameters:\n'
+    for key, value in params.items():
+        params_str += f'\t{key}: {value}\n'
+    # Check if the statistics already exist in the file to append there the new string (with a replacement)
+    file_path = args[0]
+    with open(file_path, 'r') as f:
+        content = f.read()
+    if content == '':
+        winrate_str = f'--- Statistics for {sys.argv[2]} ---\n\n{winrate_str}'
+    elif params_str in content:
+        content = content.replace(params_str, f'{winrate_str}\n{params_str}')
+        with open(file_path, 'w') as f:
+            f.write(content)
+        return
+    # Write the statistics in the file
+    with open(file_path, mode) as f:
+        f.write(f'\n\n{winrate_str}\n{params_str}')
+    return
+        
 
 def get_parameters_from_env() -> dict | None:
     params = {}
@@ -43,24 +75,24 @@ def get_parameters_from_env() -> dict | None:
     return params
 
 def load_env() -> bool:
-    args = sys.argv
-    try:
-        with open(args[1]) as f:
-            pass
-    except:
-        print(f'Usage:\n- Command: {args[0]} first_agent.env first_agent second_agent\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+    args = retrive_arg(flag='-e')
+    if args == []:
+        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return False
-    return load_dotenv(args[1])
+    return load_dotenv(args[0])
 
 def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
-    args = sys.argv
+    agents = retrive_arg(flag='-a', n_next_args=2)
+    if agents == []:
+        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+        return False
     try:
-        agents_dict[args[2]]
-        agents_dict[args[3]]
+        agents_dict[agents[0]]
+        agents_dict[agents[1]]
     except:
-        print(f'Usage:\n- Command: {args[0]} first_agent.env first_agent second_agent\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return None, None
-    return agents_dict[args[2]], agents_dict[args[3]]
+    return agents_dict[agents[0]], agents_dict[agents[1]]
 
 def get_params_combinations(params: dict) -> list[dict]:
         '''
