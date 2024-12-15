@@ -15,12 +15,11 @@ agents_dict = {
     'MCTS': MCTSPlayer()
 }
 
-def write_statistics(statistics_str: str, params: dict, mode='a'):
-    dir_path = ''
-    for elem in sys.argv[1].split('/')[:-1]:
-        dir_path += elem + '/'
-    with open(dir_path+'statistics.txt', mode) as f:
+def write_statistics(path_to_dir: str, statistics_str: str, params: dict, mode='a'):
+    with open(path_to_dir+'statistics.txt', mode) as f:
         f.write(statistics_str)
+        if params == {}:
+            return
         f.write(f'Parameters:\n')
         for key, value in params.items():
             f.write(f'\t{key}: {value}\n')

@@ -19,8 +19,9 @@ def main():
     player1: BattlePolicy = agents[1]
     # Initialize statistics file
     write_statistics(
+        path_to_dir='Agents/MCTS/',
         statistics_str=f'--- Statistics for {sys.argv[2]} ---\n\n',
-        params=params,
+        params={},
         mode='w'
     )
     # Execute N_BATTLES for each parameters combination
