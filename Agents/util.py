@@ -15,8 +15,8 @@ agents_dict = {
     'MCTS': MCTSPlayer()
 }
 
-def write_statistics(path_to_dir: str, statistics_str: str, params: dict, mode='a'):
-    with open(path_to_dir+'statistics.txt', mode) as f:
+def write_statistics(filepath: str, statistics_str: str, params: dict, mode='a'):
+    with open(filepath, mode) as f:
         f.write(statistics_str)
         if params == {}:
             return

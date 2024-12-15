@@ -19,7 +19,7 @@ def main():
     player1: BattlePolicy = agents[1]
     # Initialize statistics file
     write_statistics(
-        path_to_dir='Agents/MCTS/',
+        filepath='Agents/MCTS/statistics.txt',
         statistics_str=f'--- Statistics for {sys.argv[2]} ---\n\n',
         params={},
         mode='w'
