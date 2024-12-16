@@ -41,15 +41,20 @@ def write_statistics(winrate_str: str, params: dict, mode='a'):
         params_str += f'\t{key}: {value}\n'
     # Check if the statistics already exist in the file to append there the new string (with a replacement)
     file_path = args[0]
-    with open(file_path, 'r') as f:
-        content = f.read()
-    if content == '':
-        winrate_str = f'--- Statistics for {sys.argv[2]} ---\n\n{winrate_str}'
-    elif params_str in content:
-        content = content.replace(params_str, f'{winrate_str}\n{params_str}')
+    header = f'--- Statistics for {sys.argv[2]} ---\n\n'
+    try:
+        with open(file_path, 'r') as f:
+            content = f.read()
+        if content == '':
+            winrate_str = f'{header}{winrate_str}'
+        elif params_str in content:
+            content = content.replace(params_str, f'{winrate_str}\n{params_str}')
+            with open(file_path, 'w') as f:
+                f.write(content)
+            return
+    except FileNotFoundError:
         with open(file_path, 'w') as f:
-            f.write(content)
-        return
+            f.write(header)
     # Write the statistics in the file
     with open(file_path, mode) as f:
         f.write(f'\n\n{winrate_str}\n{params_str}')
