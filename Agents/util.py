@@ -85,7 +85,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
     agents = retrive_arg(flag='-a', n_next_args=2)
     if agents == []:
         print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
-        return False
+        return None, None
     try:
         agents_dict[agents[0]]
         agents_dict[agents[1]]

@@ -14,7 +14,6 @@ def main():
     if agents[0] is None or agents[1] is None: return
     if not load_env(): return
     params_space = get_parameters_from_env()
-    
     # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
