@@ -254,13 +254,13 @@ class MinMaxBattlePolicy:
 
 
     
-    def minimax(self, game: GameState, depth: int) -> int:
+    def minimax(self, game: GameState) -> int:
         best_move = None
         best_value = float('-inf')
 
         for move in game.get_possible_moves():
             new_game_state = self.simulate_move(game, move)
-            move_value = max(new_game_state, depth - 1)
+            move_value = max(new_game_state, self.depth - 1)
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
@@ -278,5 +278,6 @@ class MinMaxPlayer(BattlePolicy):
         print(self.name)
 
     def get_action(self, game: GameState) -> int:
-        best_move = self.minimax(game, )
+        policy = MinMaxBattlePolicy(20)
+        best_move = policy.minimax(game)
         return best_move
