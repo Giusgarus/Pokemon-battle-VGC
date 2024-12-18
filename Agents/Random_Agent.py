@@ -6,7 +6,7 @@ class RandomPolicy(BattlePolicy):
 
   def __init__(self, player_index=0):
       self.player_index = player_index
-      self.n_switch = 0
+      self.n_switches = 0
 
   def get_action(self, g: GameState) -> int:
 
@@ -29,8 +29,11 @@ class RandomPolicy(BattlePolicy):
     # scelta random dell'azione con la distribuzione di probabilità definita prima
     random_choice = np.random.choice(n_actions, p=pi)
     if random_choice > 3:
-      self.n_switch += 1
+      self.n_switches += 1
     return random_choice
 
-def get_metrics():
+  def get_metrics():
+    return {
+            'n_switches': self.n_switches
+          }
   
