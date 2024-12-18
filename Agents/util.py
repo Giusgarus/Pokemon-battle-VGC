@@ -1,9 +1,11 @@
 import os
 import sys
+import pandas as pd
 from dotenv import load_dotenv
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
-from MCTS.MCTSBattlePolicies import MCTSPlayer
+from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
+from MinMax.MinMaxBattlePolicies import MinMaxBattlePolicy
 from Logic_Agent import LogicPolicy
 from Random_Agent import RandomPolicy
 
@@ -11,11 +13,11 @@ from Random_Agent import RandomPolicy
 agents_dict = {
     'Random': RandomPolicy(player_index=1),
     'Logic': LogicPolicy(),
-    'MiniMax': None,
-    'MCTS': MCTSPlayer()
+    'MiniMax': MinMaxBattlePolicy,
+    'MCTS': MCTSBattlePolicy()
 }
 
-def retrive_arg(flag: str, n_next_args=1) -> str | list:
+def retrive_args(flag: str, n_next_args=1) -> list:
     args = sys.argv
     for i, arg in enumerate(args):
         if arg == flag:
@@ -28,36 +30,36 @@ def retrive_arg(flag: str, n_next_args=1) -> str | list:
                 break
     return []
 
-def write_statistics(winrate_str: str, params: dict, mode='a'):
-    args = retrive_arg(flag='-s')
-    # Cases of exit
-    if args == []:
-        return
-    if params == {}:
-        return
-    # Create the parameters' string
-    params_str = 'Parameters:\n'
+def write_metrics(metrics_dict: dict, params: dict):
+    data_to_write = {}
+    # Retrieve args from CLI
+    file_path = retrive_args(flag='-s')[0]
+    agents = retrive_args(flag='-a', n_next_args=2)
+    # Add the agents to the dictionary
+    data_to_write['agent0'] = agents[0]
+    data_to_write['agent1'] = agents[1]
+    # Add the parameters' to the dictionary
     for key, value in params.items():
-        params_str += f'\t{key}: {value}\n'
-    # Check if the statistics already exist in the file to append there the new string (with a replacement)
-    file_path = args[0]
-    header = f'--- Statistics for {sys.argv[2]} ---\n\n'
-    try:
-        with open(file_path, 'r') as f:
-            content = f.read()
-        if content == '':
-            winrate_str = f'{header}{winrate_str}'
-        elif params_str in content:
-            content = content.replace(params_str, f'{winrate_str}\n{params_str}')
-            with open(file_path, 'w') as f:
-                f.write(content)
-            return
-    except FileNotFoundError:
+        data_to_write[key] = value
+    # Add the metrics' to the dictionary
+    for key, value in metrics_dict.items():
+        data_to_write[key] = value
+    # Case of empty file (or which not exists)
+    if not os.path.exists(file_path) or os.path.getsize(file_path) == 0:
+        columns_str = ''
+        for key in data_to_write.keys():
+            columns_str += f'{key};'
+        columns_str = columns_str[:-1] + '\n'
         with open(file_path, 'w') as f:
-            f.write(header)
-    # Write the statistics in the file
-    with open(file_path, mode) as f:
-        f.write(f'\n\n{winrate_str}\n{params_str}')
+            f.write(columns_str)
+    # Create the row to be append to the file
+    str_to_write = ''
+    for key, value in data_to_write.items():
+        str_to_write += f'{value};'
+    str_to_write = str_to_write[:-1] + '\n'
+    # Write on the file the dataframe created
+    with open(file_path, 'a') as f:
+        f.write(str_to_write)
     return
         
 
@@ -80,14 +82,14 @@ def get_parameters_from_env() -> dict | None:
     return params
 
 def load_env() -> bool:
-    args = retrive_arg(flag='-e')
+    args = retrive_args(flag='-e')
     if args == []:
         print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return False
     return load_dotenv(args[0])
 
 def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
-    agents = retrive_arg(flag='-a', n_next_args=2)
+    agents = retrive_args(flag='-a', n_next_args=2)
     if agents == []:
         print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return None, None
@@ -130,7 +132,7 @@ def get_params_combinations(params: dict) -> list[dict]:
         params_combinations.append(params_i)
         return params_combinations
 
-def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, mode='console') -> int:
+def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, mode='console') -> dict:
     '''
     Performs a single battle between two players and their teams in the environment passed as parameter.
     '''
@@ -150,5 +152,15 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
         states, _, terminated, _, _ = env.step([my_action,opp_action])
         env.render(mode)
         index += 1
-    # Return the winner player of the battle
-    return env.winner
+    # Get the metrics of the battle for player 0
+    metrics_dict: dict = player0.get_metrics()
+    metrics_dict['n_turns'] = index
+    metrics_dict['n_switches'] = player0.n_switches
+    pkm_list = [env.teams[0].active] + [pkm for pkm in env.teams[0].party]
+    hp_resudue = tot_hp = 0
+    for pkm in pkm_list:
+        hp_resudue += pkm.hp
+        tot_hp += pkm.max_hp
+    metrics_dict['hp_residue'] = round(number=(100/tot_hp) * hp_resudue, ndigits=2)
+    metrics_dict['winner'] = env.winner
+    return metrics_dict

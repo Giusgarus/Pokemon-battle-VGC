@@ -371,7 +371,7 @@ class MonteCarloTreeSearch():
 
 
 
-class MCTSPlayer(BattlePolicy):
+class MCTSBattlePolicy(BattlePolicy):
     '''
     Agent which uses the Monte Carlo Tree Search (MCTS) approach as policy to choose the actions.
     '''
@@ -383,9 +383,15 @@ class MCTSPlayer(BattlePolicy):
         self.enable_print = enable_print
         self.enable_tree_visualization = enable_tree_visualization
         self.tree = None
+        self.n_switches = 0
     
     def __str__(self):
         print(self.name)
+    
+    def get_metrics(self):
+        return {
+            'n_switches': self.n_switches
+        }
     
     def generate_tree(self, id: int):
         if self.tree is not None and self.tree.enable_tree_visualization:
@@ -459,7 +465,10 @@ class MCTSPlayer(BattlePolicy):
             if this_node_utility > best_node_utility:
                 best_node = child
         self.tree = tree
-        return best_node.actions[0]
+        # Update the number of switches
+        if best_node.actions[self.player_index] > 3:
+            self.n_switches += 1
+        return best_node.actions[self.player_index]
 
 
 

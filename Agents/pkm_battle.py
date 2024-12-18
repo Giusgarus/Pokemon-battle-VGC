@@ -5,23 +5,33 @@ from vgc.datatypes.Objects import PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.util.generator.PkmRosterGenerators import RandomPkmRosterGenerator
 from vgc.util.generator.PkmTeamGenerators import RandomTeamFromRoster
-from util import run_battle, get_params_combinations, write_statistics, get_agents, load_env, get_parameters_from_env
+from util import run_battle, get_params_combinations, write_metrics, get_agents, load_env, get_parameters_from_env
 
 
 def main():
+    overall_metrics_dict = {
+        'winrate': 0,
+        'avg_n_turns': 0,
+        'avg_n_switches': 0,
+        'avg_hp_residue': 0
+    }
+
     # Load informations from arguments got by CLI
     agents = get_agents()
     if agents[0] is None or agents[1] is None: return
     if not load_env(): return
     params_space = get_parameters_from_env()
-    # Create 2 players which perform the Monte Carlo Tree Search (and the 2 teams for the battle)
+
+    # Create 2 players based on the agents passed as CLI argument
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
-    # Execute N_BATTLES for each parameters combination
+
+    # Iterate on each parameters' combination
     combinations_list: list[dict] = get_params_combinations(params_space)
     for i, params in enumerate(combinations_list):
         player0.set_parameters(params)
-        # Perform "n_battles" battles
+
+        # Perform "N_BATTLES" battles
         player0_winrate = 0
         for j in range(params['N_BATTLES']):
             # Random pokemon roster and team generators
@@ -38,18 +48,35 @@ def main():
                 debug=True,
                 encode=(player0.requires_encode(), player1.requires_encode())
             )
-            print(f'\n====================== Battle {j+1} ======================\n')
-            winner_player = run_battle(player0, player1, env, mode='no_output')
-            if winner_player == 0:
+            # Run the battle
+            print(f'\n>>> Battle {j+1}: ', end=None)
+            metrics_dict = run_battle(player0, player1, env, mode='no_output')
+            if metrics_dict['winner'] == 0:
                 player0_winrate += 1
-            print(f'Player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
+            print(f'player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
+            # Update the metrics dictionary based on the battle done
+            overall_metrics_dict['avg_n_turns'] += metrics_dict['n_turns']
+            overall_metrics_dict['avg_n_switches'] += metrics_dict['n_switches']
+            overall_metrics_dict['avg_hp_residue'] += metrics_dict['hp_residue']
+            # Reset the environment
             env.reset()
-        print(f'\n>>> Winrate: {player0_winrate/params["N_BATTLES"]*100:.2f}%\n>>> Combination: {i+1}/{len(combinations_list)}\n>>> Parameters: {params}\n')
-        write_statistics(
-            winrate_str=f'Winrate: {player0_winrate}/{params["N_BATTLES"]} = {player0_winrate/params["N_BATTLES"]*100:.2f}%',
-            params=params,
-            mode='a'
+            player0.n_switches = 0
+        # Compute the average of the metrics
+        overall_metrics_dict['avg_n_turns'] = round(number=(overall_metrics_dict['avg_n_turns']/params['N_BATTLES']), ndigits=2)
+        overall_metrics_dict['avg_n_switches'] = round(number=(overall_metrics_dict['avg_n_switches']/params['N_BATTLES']), ndigits=2)
+        overall_metrics_dict['avg_hp_residue'] = round(number=(overall_metrics_dict['avg_hp_residue']/params['N_BATTLES']), ndigits=2)
+        overall_metrics_dict['winrate'] = round(number=(player0_winrate/params['N_BATTLES'])*100, ndigits=2)
+        # Print and save metrics
+        print(f'\n=== Winrate ===\n{overall_metrics_dict["winrate"]}%\n=== Combination ===\n{i+1}/{len(combinations_list)}\n=== Parameters ===\n{params}\n')
+        write_metrics(
+            metrics_dict=overall_metrics_dict,
+            params=params
         )
+        # Reset metrics
+        overall_metrics_dict['avg_n_turns'] = 0
+        overall_metrics_dict['avg_n_switches'] = 0
+        overall_metrics_dict['avg_hp_residue'] = 0
+        overall_metrics_dict['winrate'] = 0
     return
 
 
