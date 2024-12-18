@@ -31,9 +31,3 @@ class RandomPolicy(BattlePolicy):
     if random_choice > 3:
       self.n_switches += 1
     return random_choice
-
-  def get_metrics():
-    return {
-            'n_switches': self.n_switches
-          }
-  
