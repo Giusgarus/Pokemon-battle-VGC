@@ -26,7 +26,7 @@ class LogicPolicy(BattlePolicy):
         my_active_moves = my_active.moves
         move_types = [my_active_moves[0].type, my_active_moves[1].type, my_active_moves[2].type, my_active_moves[3].type]
         move_targets = [my_active_moves[0].target, my_active_moves[1].target, my_active_moves[2].target, my_active_moves[3].target]
-        my_switch = my_team.party.pop(0)
+        my_switch = my_team.party[1:]
         my_hp_party = [my_switch[0].hp, my_switch[1].hp]
         my_type_party = [my_switch[0].type, my_switch[1].type]
 
