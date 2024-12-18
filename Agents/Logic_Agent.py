@@ -10,6 +10,7 @@ class LogicPolicy(BattlePolicy):
   def __init__(self):
         super().__init__()  # Call the BattlePolicy constructor
         self.kb = KnowledgeBase()  # KnowledgeBase initialization 
+        self.n_switches = 0
 
   def get_action(self, g: GameState) -> int:
 
@@ -41,7 +42,12 @@ class LogicPolicy(BattlePolicy):
         self.kb.clear_actions_priority()
         self.kb.evaluate()
         actions_priority = self.kb.get_actions_priority()
-        return actions_priority.index(max(actions_priority))
+        action_choice = actions_priority.index(max(actions_priority))
+        if action_choice > 3:
+          self.n_switches += 1
+        return action_choice
+
+
 
 
 class KnowledgeBase:
