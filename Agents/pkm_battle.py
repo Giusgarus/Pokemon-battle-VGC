@@ -49,7 +49,7 @@ def main():
                 encode=(player0.requires_encode(), player1.requires_encode())
             )
             # Run the battle
-            print(f'\n>>> Battle {j+1}: ', end=None)
+            print(f'>>> Battle {j+1}: ', end='')
             metrics_dict = run_battle(player0, player1, env, mode='no_output')
             if metrics_dict['winner'] == 0:
                 player0_winrate += 1
