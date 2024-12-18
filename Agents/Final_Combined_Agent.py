@@ -3,6 +3,7 @@ from vgc.datatypes.Constants import TYPE_CHART_MULTIPLIER
 from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
 from vgc.datatypes.Types import PkmType, WeatherCondition
 from Agents.Logic_Agent import KnowledgeBase
+from Agetns.MTCS.MTCSBattlePolicies import MTCSNode, MTCSBattlePolicy, MonteCarloTreeSearch
 from copy import deepcopy
 
 import math
