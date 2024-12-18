@@ -6,6 +6,7 @@ from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
 from vgc.datatypes.Types import PkmType, WeatherCondition
 from Agents.Logic_Agent import KnowledgeBase
 from Agents.MTCS.MTCSBattlePolicies import MTCSNode, MTCSBattlePolicy, MonteCarloTreeSearch
+from pyvis.network import Network
 from copy import deepcopy
 
 import math
