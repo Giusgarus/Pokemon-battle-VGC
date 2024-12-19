@@ -29,7 +29,10 @@ def main():
     # Iterate on each parameters' combination
     combinations_list: list[dict] = get_params_combinations(params_space)
     for i, params in enumerate(combinations_list):
-        player0.set_parameters(params)
+        try:
+            player0.set_parameters(params)
+        except:
+            pass
 
         # Perform "N_BATTLES" battles
         player0_winrate = 0
