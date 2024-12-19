@@ -4,7 +4,7 @@ from vgc.behaviour import BattlePolicy
 from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
 from Agents.Logic_Agent import KnowledgeBase
 from Agents.MTCS.MTCSBattlePolicies import MTCSNode, MTCSBattlePolicy, MonteCarloTreeSearch
-from Agents.MinMax.MinMaxBattlePolicies import damage_predictions, MinMaxPlayer, MinMaxBattlepolicy
+from Agents.MinMax.MinMaxBattlePolicies import damage_prediction, MinMaxPlayer, MinMaxBattlepolicy
 from pyvis.network import Network
 from copy import deepcopy
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
@@ -59,7 +59,7 @@ class CombinedPolicy(BattlePolicy):
     
         if len(my_pkms_not_fainted) == 1 and len(opp_pkms_not_fainted) == 1:
           # START MINIMAX
-          MiniMaxPlayer = 
+          MinMaxPlayer = MinMaxPlayer()
           return MiniMaxPlayer.get_action
         else:
           # START MTCS
