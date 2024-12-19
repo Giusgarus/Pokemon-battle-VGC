@@ -4,6 +4,7 @@ from vgc.behaviour import BattlePolicy
 from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
 from Agents.Logic_Agent import KnowledgeBase
 from Agents.MTCS.MTCSBattlePolicies import MTCSNode, MTCSBattlePolicy, MonteCarloTreeSearch
+from Agents.MinMax.MinMaxBattlePolicies import damage_predictions, MinMaxPlayer, MinMaxBattlepolicy
 from pyvis.network import Network
 from copy import deepcopy
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
