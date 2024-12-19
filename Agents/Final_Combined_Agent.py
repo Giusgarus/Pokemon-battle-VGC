@@ -57,7 +57,7 @@ class CombinedPolicy(BattlePolicy):
         my_pkms_not_fainted = my_team.get_not_fainted()
         opp_pkms_not_fainted = opp_team.get_not_fainted()
     
-        if len(my_pkms_not_fainted) == 1 and len(opp_pkms_not_fainted) == 1:
+        if len(my_pkms_not_fainted) == 0 and len(opp_pkms_not_fainted) == 0:
           # START MINIMAX
           MinMaxPlayer = MinMaxPlayer()
           return MiniMaxPlayer.get_action
