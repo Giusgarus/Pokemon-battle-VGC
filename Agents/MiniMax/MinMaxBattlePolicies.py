@@ -2,7 +2,7 @@
 from copy import deepcopy
 import numpy as np
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
-
+from typing import Tuple
 
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
@@ -33,34 +33,62 @@ def damage_prediction(move_type: PkmType, pkm_type: PkmType, move_power: float, 
         return damage
 
 
-'''
-class MMNode:
-    def __init__(self, env: PkmBattleEnv, parent: 'MMNode' = None, actions: list[int] = None):
-        self.parent: MMNode = parent
-        self.actions = actions
-        self.children: list[MMNode] = []
-        self.env: PkmBattleEnv = env
-        self.is_leaf = True
-
-    
-    def get_actions(self,current_team) -> list[int]:
-        team = self.env.teams[current_team]
-        actions_pkm = team.active.moves
-        actions_list = []
-        for i in range(len(actions_pkm)):
-            actions_list.append([actions_pkm[i].move_id])
-        return actions_list
-'''
 
 
+def simulate_move(game: GameState, move_id: int, player: bool) -> GameState:
+    new_g = deepcopy(game)
+
+    if player != 0 and player != 1:
+        raise ValueError('Player must be 0 or 1')
+
+    opp_idx = 0 if player == 1 else 1
+
+    my_team = game.teams[player]
+    opp_team = game.teams[opp_idx]
+
+    my_active = my_team.active
+    opp_active = opp_team.active
+
+    if move_id < DEFAULT_PKM_N_MOVES:
+        move = my_active.moves[move_id]
+        if move.weather !=0 :
+            new_g.weather.condition = move.weather
+        elif move.recover !=0 :
+            my_active.hp = min(my_active.hp + move.recover, my_active.max_hp)
+        else:
+            damage = damage_prediction(move.type, my_active.type, move.power, opp_active.type,
+                                    my_team.stage[PkmStat.ATTACK], opp_team.stage[PkmStat.DEFENSE], new_g.weather.condition)
+            opp_active.hp = max(0, opp_active.hp - damage)
+    else:
+        switch_id = move_id - DEFAULT_PKM_N_MOVES
+        if switch_id < len(my_team.party):
+            my_team.active, my_team.party[switch_id] = my_team.party[switch_id], my_team.active
+
+    return new_g
 
 
 
-class MinMaxBattlePolicy:
+
+def get_residual_hp(game: GameState, player: bool) -> Tuple[int, int]:
+    my_team = game.teams[0]
+    opp_team = game.teams[1]
+    my_tot_hp=0
+    for pkm in my_team.get_pkm_list():
+        my_tot_hp += pkm.hp
+
+    opp_tot_hp=0
+    for pkm in opp_team.get_pkm_list():
+        opp_tot_hp += pkm.hp
+    return my_tot_hp, opp_tot_hp
+
+
+
+
+class MiniMaxBattlePolicy:
     def __init__(self, depth):
         self.depth = depth
 
-    def evaluate(self, game: GameState, player: int) -> float:
+    def evaluate(self, game: GameState, player: bool) -> float:
 
         if player != 0 and player != 1:
             raise ValueError('Player must be 0 or 1')
@@ -74,13 +102,7 @@ class MinMaxBattlePolicy:
         opp_score = 0
 
         # Considera le win condition
-        my_tot_hp=0
-        for pkm in my_team.get_pkm_list():
-            my_tot_hp += pkm.hp
-
-        opp_tot_hp=0
-        for pkm in opp_team.get_pkm_list():
-            opp_tot_hp += pkm.hp
+        my_tot_hp, opp_tot_hp = get_residual_hp(game, player)
 
         if(opp_tot_hp == 0):
             my_score += 10000
@@ -195,62 +217,39 @@ class MinMaxBattlePolicy:
         return my_score - opp_score
 
 
-
-
-    def simulate_move(g: GameState, move_id: int) -> GameState:
-        new_g = deepcopy(g)
-        my_team = new_g.teams[0]
-        opp_team = new_g.teams[1]
-        my_active = my_team.active
-        opp_active = opp_team.active
-
-        if move_id < DEFAULT_PKM_N_MOVES:
-            move = my_active.moves[move_id]
-            if move.weather !=0 :
-                new_g.weather.condition = move.weather
-            elif move.recover !=0 :
-                my_active.hp = min(my_active.hp + move.recover, my_active.max_hp)
-            else:
-                damage = damage_prediction(move.type, my_active.type, move.power, opp_active.type,
-                                        my_team.stage[PkmStat.ATTACK], opp_team.stage[PkmStat.DEFENSE], new_g.weather.condition)
-                opp_active.hp = max(0, opp_active.hp - damage)
-        else:
-            switch_id = move_id - DEFAULT_PKM_N_MOVES
-            if switch_id < len(my_team.party):
-                my_team.active, my_team.party[switch_id] = my_team.party[switch_id], my_team.active
-
-        return new_g
-
-
     
-    def mini(self, game, depth, alpha, beta) -> float:
-        if depth == 0 :
-            return self.evaluate(game, 1)
+    def mini(self, game: GameState, depth: int, alpha, beta) -> float:
+        residual_hp = get_residual_hp(game, 0)
+        if depth == 0 or residual_hp[1] ==0 or residual_hp[0] == 0:
+            return self.evaluate(game, 0)
         else :
             min_eval = float('inf')
-            for move in game.get_possible_moves():
-                new_game_state = self.simulate_move(game, move)
+            for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
+                new_game_state = simulate_move(game, move, 1)
                 eval = self.max(new_game_state, depth - 1, alpha, beta)
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
+                #CONTROLLA CONDIZIONE
                 if beta <= alpha:
                     break
             return min_eval + self.evaluate(game, 0)
-    
 
-    def max(self, game, depth, alpha, beta) -> float:
-        if depth == 0 :
+
+    def max(self, game: GameState, depth: int, alpha, beta) -> float:
+        residual_hp = get_residual_hp(game, 0)
+        if depth == 0 or residual_hp[1] ==0 or residual_hp[0] == 0:
             return self.evaluate(game, 0)
-
-        max_eval = float('-inf')
-        for move in game.get_possible_moves():
-            new_game_state = self.simulate_move(game, move)
-            eval = self.mini(new_game_state, depth - 1, alpha, beta)
-            max_eval = max(max_eval, eval)
-            alpha = max(alpha, eval)
-            if beta <= alpha:
-                break
-        return max_eval
+        else :
+            max_eval = float('-inf')
+            for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
+                new_game_state = simulate_move(game, move, 0)
+                eval = self.mini(new_game_state, depth - 1, alpha, beta)
+                max_eval = max(max_eval, eval)
+                alpha = max(alpha, eval)
+                #CONTROLLA CONDIZIONE
+                if beta <= alpha:
+                    break
+            return max_eval +self.evaluate(game, 0)
 
 
     
@@ -258,8 +257,8 @@ class MinMaxBattlePolicy:
         best_move = None
         best_value = float('-inf')
 
-        for move in game.get_possible_moves():
-            new_game_state = self.simulate_move(game, move)
+        for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
+            new_game_state = simulate_move(game, move)
             move_value = max(new_game_state, self.depth - 1)
             if move_value > best_value:
                 best_value = move_value
@@ -268,7 +267,7 @@ class MinMaxBattlePolicy:
     
     
 
-class MinMaxPlayer(BattlePolicy):
+class MiniMaxPlayer(BattlePolicy):
 
     def __init__(self, player_index: int, enable_print=False):
         super().__init__()
@@ -278,6 +277,6 @@ class MinMaxPlayer(BattlePolicy):
         print(self.name)
 
     def get_action(self, game: GameState) -> int:
-        policy = MinMaxBattlePolicy(20)
+        policy = MiniMaxBattlePolicy(20)
         best_move = policy.minimax(game)
         return best_move
