@@ -442,7 +442,7 @@ class MCTSBattlePolicy(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection()
-            children = tree.expansion(leaf, number_my_top_moves=2, number_opp_top_moves=3)
+            children = tree.expansion(leaf, number_my_top_moves=self.params['MY_EXPANSION'], number_opp_top_moves=self.params['OPP_EXPANSION'])
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
@@ -454,8 +454,8 @@ class MCTSBattlePolicy(BattlePolicy):
             best_node_utility = best_node.utility_playouts / best_node.total_playouts
             this_node_utility = child.utility_playouts / child.total_playouts
             # Case of switch action skipped if there is a difference between the utility values < HEURISTIC_COND1 (~0.02/0.05)
-            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['HEURISTIC_COND1']:
-                continue
+            #if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['HEURISTIC_COND1']:
+            #    continue
             # Case of current node with total number of playouts > HEURISTIC_COND2_1 times the best node's total number of playouts and similar utility values
             if best_node.total_playouts < child.total_playouts and child.total_playouts > self.params['HEURISTIC_COND2_1'] * best_node.total_playouts \
                 and abs(this_node_utility - best_node_utility) < self.params['HEURISTIC_COND2_2']:

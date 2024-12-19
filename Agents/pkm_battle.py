@@ -52,11 +52,10 @@ def main():
                 encode=(player0.requires_encode(), player1.requires_encode())
             )
             # Run the battle
-            print(f'>>> Battle {j+1}: ', end='')
             metrics_dict = run_battle(player0, player1, env, mode='no_output')
             if metrics_dict['winner'] == 0:
                 player0_winrate += 1
-            print(f'player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
+            print(f'>>> Battle {j+1}/{params['N_BATTLES']}: player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
             # Update the metrics dictionary based on the battle done
             overall_metrics_dict['avg_n_turns'] += metrics_dict['n_turns']
             overall_metrics_dict['avg_n_switches'] += metrics_dict['n_switches']
