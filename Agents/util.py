@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
-from MiniMax.MinMaxBattlePolicies import MiniMaxBattlePolicy
+from MiniMax.MiniMaxBattlePolicies import MiniMaxBattlePolicy
 from Logic_Agent import LogicPolicy
 from Random_Agent import RandomPolicy
 
