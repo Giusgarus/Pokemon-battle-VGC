@@ -28,6 +28,7 @@ def main():
 
     # Iterate on each parameters' combination
     combinations_list: list[dict] = get_params_combinations(params_space)
+    print(f'\n=== Total Combinations ===\n{len(combinations_list)}\n=== Number of battles per combination ===\n{combinations_list[0]["N_BATTLES"]}\n')
     for i, params in enumerate(combinations_list):
         try:
             player0.set_parameters(params)
