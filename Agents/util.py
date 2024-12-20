@@ -7,13 +7,15 @@ from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
 from MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
 from Agents.Logic.Logic_Agent import LogicPolicy
 from Agents.Random.Random_Agent import RandomPolicy
+from Agents.Combined.Combined_Agent import CombinedPolicy
 
 
 agents_dict = {
     'Random': RandomPolicy(player_index=1),
     'Logic': LogicPolicy(),
     'MiniMax': MiniMaxPlayer(depth=5),
-    'MCTS': MCTSBattlePolicy()
+    'MCTS': MCTSBattlePolicy(),
+    'Combined': CombinedPolicy()
 }
 
 def retrive_args(flag: str, n_next_args=1) -> list:
