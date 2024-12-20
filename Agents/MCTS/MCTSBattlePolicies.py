@@ -171,7 +171,7 @@ class MonteCarloTreeSearch():
                 color='#D32F2F'
             )
 
-    def selection(self) -> MCTSNode:
+    def selection(self, ucb1_C_value=1.5) -> MCTSNode:
         '''
         Implements the Selection phase, which consists in follow a path (using the Selection policies) in the tree \
         until a leaf is found. In the children's list of the node, is searched the node which maximizes the UCB1 formula, \
@@ -187,7 +187,7 @@ class MonteCarloTreeSearch():
             '''
             exploitation_term = n.utility_playouts/n.total_playouts
             exploration_term = np.sqrt(np.log(n.parent.total_playouts) / n.total_playouts)
-            C = 1.6
+            C = ucb1_C_value
             return exploitation_term + (C * exploration_term)
         node = self.root
         while not node.is_leaf:
@@ -421,7 +421,7 @@ class MCTSBattlePolicy(BattlePolicy):
         The node with higher utility value computed by simulating moves with the MCTS algorithm.
         '''
         # Initializations
-        N = 100
+        N = self.params['N']
         state_copy: GameState = deepcopy(state)
         tree = MonteCarloTreeSearch(
             player_index=self.player_index,
@@ -436,7 +436,7 @@ class MCTSBattlePolicy(BattlePolicy):
         for i in range(N):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
-            leaf = tree.selection()
+            leaf = tree.selection(self.params['C'])
             children = tree.expansion(leaf, number_my_top_moves=self.params['MY_EXPANSION'], number_opp_top_moves=self.params['OPP_EXPANSION'])
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
