@@ -3,11 +3,11 @@ import sys
 from dotenv import load_dotenv
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
-from Agents.MCTS.MCTSBattlePolicies import MCTSBattlePolicy
-from Agents.MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
-from Agents.Logic.Logic_Agent import LogicPolicy
-from Agents.Random.Random_Agent import RandomPolicy
-from Agents.Combined.Combined_Agent import CombinedPolicy
+from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
+from MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
+from Logic.Logic_Agent import LogicPolicy
+from Random.Random_Agent import RandomPolicy
+from Combined.Combined_Agent import CombinedPolicy
 
 
 agents_dict = {
