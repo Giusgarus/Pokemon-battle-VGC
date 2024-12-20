@@ -1,6 +1,5 @@
 import os
 import sys
-import pandas as pd
 from dotenv import load_dotenv
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
