@@ -4,7 +4,7 @@ import numpy as np
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
-from Logic_Agent import KnowledgeBase
+from Agents.Logic.Logic_Agent import KnowledgeBase
 from pyvis.network import Network
 
 

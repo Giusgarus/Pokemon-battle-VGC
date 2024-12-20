@@ -5,8 +5,8 @@ from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
 from MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
-from Logic_Agent import LogicPolicy
-from Random_Agent import RandomPolicy
+from Agents.Logic.Logic_Agent import LogicPolicy
+from Agents.Random.Random_Agent import RandomPolicy
 
 
 agents_dict = {

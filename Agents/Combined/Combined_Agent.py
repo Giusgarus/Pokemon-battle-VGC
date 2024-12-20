@@ -2,9 +2,9 @@ from __future__ import annotations
 import numpy as np
 from vgc.behaviour import BattlePolicy
 from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
-from Agents.Logic_Agent import KnowledgeBase
-from Agents.MTCS.MTCSBattlePolicies import MTCSNode, MTCSBattlePolicy, MonteCarloTreeSearch
-from Agents.MinMax.MinMaxBattlePolicies import damage_prediction, MinMaxPlayer, MinMaxBattlepolicy
+from Agents.Logic.Logic_Agent import KnowledgeBase
+from Agents.MCTS.MCTSBattlePolicies import MCTSBattlePolicy
+from Agents.MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
 from pyvis.network import Network
 from copy import deepcopy
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
@@ -63,6 +63,6 @@ class CombinedPolicy(BattlePolicy):
           return MiniMaxPlayer.get_action
         else:
           # START MTCS
-          MTCSPlayer = MTCSBattlePolicy()
+          MTCSPlayer = MCTSBattlePolicy()
           return MTCSPlayer.get_action 
           
