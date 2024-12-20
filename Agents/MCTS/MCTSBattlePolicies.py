@@ -56,46 +56,42 @@ class MCTSNode:
         kb.update_facts(
             my_pkm_type=my_pkm.type,
             opp_pkm_type=opp_pkm.type,
-            move_types=[my_pkm.moves[0].type, my_pkm.moves[1].type],
-            move_targets=[opp_pkm.moves[0].type, opp_pkm.moves[1].type,],
+            move_types=[pkm_move.type for pkm_move in my_pkm.moves],
+            move_targets=[pkm_move.type for pkm_move in opp_pkm.moves],
             my_hp=my_pkm.hp,
             my_max_hp=my_pkm.max_hp,
-            my_hp_party=[my_team.party[0].hp, my_team.party[1].hp],
-            my_type_party=[my_team.party[0].type, my_team.party[1].type],
+            my_hp_party=[pkm.hp for pkm in my_team.party],
+            my_type_party=[pkm.type for pkm in my_team.party],
             weather=self.env.weather
         )
         kb.clear_actions_priority()
         kb.evaluate()
-        actions_priority = kb.get_actions_priority()
-        my_top_actions_priority = sorted(
-            [(a,v) for a,v in enumerate(actions_priority)],
-            key=lambda x: x[1],
-            reverse=True
-        )
-        my_moves_with_higher_priority = [a for a,v in my_top_actions_priority]
-        my_moves_with_higher_priority = my_moves_with_higher_priority[:number_of_my_top_moves]
+        actions_priority = deepcopy(kb.get_actions_priority())
+        my_moves_with_higher_priority = []
+        for i in range(number_of_my_top_moves):
+            index = actions_priority.index(max(actions_priority))
+            my_moves_with_higher_priority.append(index)
+            actions_priority.pop(index)
         # Retrieve the best moves for the opponent
         kb.update_facts(
             my_pkm_type=opp_pkm.type,
             opp_pkm_type=my_pkm.type,
-            move_types=[opp_pkm.moves[0].type, opp_pkm.moves[1].type],
-            move_targets=[my_pkm.moves[0].type, my_pkm.moves[1].type],
+            move_types=[pkm_move.type for pkm_move in opp_pkm.moves],
+            move_targets=[pkm_move.type for pkm_move in my_pkm.moves],
             my_hp=opp_pkm.hp,
             my_max_hp=opp_pkm.max_hp,
-            my_hp_party=[opp_team.party[0].hp, opp_team.party[1].hp],
-            my_type_party=[opp_team.party[0].type, opp_team.party[1].type],
+            my_hp_party=[pkm.hp for pkm in opp_team.party],
+            my_type_party=[pkm.type for pkm in opp_team.party],
             weather=self.env.weather
         )
         kb.clear_actions_priority()
         kb.evaluate()
-        actions_priority = kb.get_actions_priority()
-        opp_top_actions_priority = sorted(
-            [(a,v) for a,v in enumerate(actions_priority)],
-            key=lambda x: x[1],
-            reverse=True
-        )
-        opp_moves_with_higher_priority = [a for a,v in opp_top_actions_priority]
-        opp_moves_with_higher_priority = opp_moves_with_higher_priority[:number_of_opp_top_moves]
+        actions_priority = deepcopy(kb.get_actions_priority())
+        opp_moves_with_higher_priority = []
+        for i in range(number_of_opp_top_moves):
+            index = actions_priority.index(max(actions_priority))
+            opp_moves_with_higher_priority.append(index)
+            actions_priority.pop(index)
         # Compute all the combinations of my best moves and the opponent best moves
         combinations_list = []
         for i in my_moves_with_higher_priority:
