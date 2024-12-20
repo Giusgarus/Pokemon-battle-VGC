@@ -388,11 +388,6 @@ class MCTSBattlePolicy(BattlePolicy):
     def __str__(self):
         print(self.name)
     
-    def get_metrics(self):
-        return {
-            'n_switches': self.n_switches
-        }
-    
     def generate_tree(self, id: int):
         if self.tree is not None and self.tree.enable_tree_visualization:
             self.tree.net.set_options("""

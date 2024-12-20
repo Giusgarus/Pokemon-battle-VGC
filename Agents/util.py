@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
-from MinMax.MinMaxBattlePolicies import MinMaxBattlePolicy
+from MiniMax.MinMaxBattlePolicies import MiniMaxBattlePolicy
 from Logic_Agent import LogicPolicy
 from Random_Agent import RandomPolicy
 
@@ -13,7 +13,7 @@ from Random_Agent import RandomPolicy
 agents_dict = {
     'Random': RandomPolicy(player_index=1),
     'Logic': LogicPolicy(),
-    'MiniMax': MinMaxBattlePolicy,
+    'MiniMax': MiniMaxBattlePolicy(depth=5),
     'MCTS': MCTSBattlePolicy()
 }
 
@@ -153,7 +153,7 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
         env.render(mode)
         index += 1
     # Get the metrics of the battle for player 0
-    metrics_dict: dict = player0.get_metrics()
+    metrics_dict: dict = {}
     metrics_dict['n_turns'] = index
     metrics_dict['n_switches'] = player0.n_switches
     pkm_list = [env.teams[0].active] + [pkm for pkm in env.teams[0].party]
