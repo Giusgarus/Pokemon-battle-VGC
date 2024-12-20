@@ -1,4 +1,3 @@
-#Custom serve, numpy bho vediamo
 from copy import deepcopy
 import numpy as np
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
@@ -9,6 +8,7 @@ from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Constants import DEFAULT_PKM_N_MOVES, DEFAULT_PARTY_SIZE, TYPE_CHART_MULTIPLIER, DEFAULT_N_ACTIONS
 from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
 from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
+from vgc.competition.StandardPkmMoves import Struggle
 
 
 def damage_prediction(move_type: PkmType, pkm_type: PkmType, move_power: float, opp_pkm_type: PkmType,
@@ -41,7 +41,7 @@ def simulate_move(game: GameState, move_id: int, player: bool) -> GameState:
     if player != 0 and player != 1:
         raise ValueError('Player must be 0 or 1')
 
-    opp_idx = 0 if player == 1 else 1
+    opp_idx = 1 if player == 0 else 0
 
     my_team = game.teams[player]
     opp_team = game.teams[opp_idx]
@@ -85,6 +85,7 @@ def get_residual_hp(game: GameState, player: bool) -> Tuple[int, int]:
 
 
 class MiniMaxBattlePolicy:
+    
     def __init__(self, depth):
         self.depth = depth
 
@@ -93,7 +94,7 @@ class MiniMaxBattlePolicy:
         if player != 0 and player != 1:
             raise ValueError('Player must be 0 or 1')
 
-        opp_idx = 0 if player == 1 else 1
+        opp_idx = 1 if player == 0 else 0
 
         my_team = game.teams[player]
         opp_team = game.teams[opp_idx]
@@ -225,12 +226,16 @@ class MiniMaxBattlePolicy:
         else :
             min_eval = float('inf')
             for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
+                if move == 4 and game.teams[1].party[0].fainted == True:
+                    continue
+                if move == 5 and game.teams[1].party[1].fainted == True:
+                    continue
                 new_game_state = simulate_move(game, move, 1)
                 eval = self.max(new_game_state, depth - 1, alpha, beta)
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
                 #CONTROLLA CONDIZIONE
-                if beta <= alpha:
+                if eval <= alpha:
                     break
             return min_eval + self.evaluate(game, 0)
 
@@ -242,12 +247,16 @@ class MiniMaxBattlePolicy:
         else :
             max_eval = float('-inf')
             for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
+                if move == 4 and game.teams[0].party[0].fainted == True:
+                    continue
+                if move == 5 and game.teams[0].party[1].fainted == True:
+                    continue
                 new_game_state = simulate_move(game, move, 0)
                 eval = self.mini(new_game_state, depth - 1, alpha, beta)
                 max_eval = max(max_eval, eval)
                 alpha = max(alpha, eval)
                 #CONTROLLA CONDIZIONE
-                if beta <= alpha:
+                if beta <= eval:
                     break
             return max_eval +self.evaluate(game, 0)
 
@@ -256,10 +265,9 @@ class MiniMaxBattlePolicy:
     def minimax(self, game: GameState) -> int:
         best_move = None
         best_value = float('-inf')
-
         for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
-            new_game_state = simulate_move(game, move)
-            move_value = max(new_game_state, self.depth - 1)
+            new_game_state = simulate_move(game, move, 0)
+            move_value = self.max(new_game_state, self.depth - 1, float('-inf'), float('inf'))
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
@@ -269,14 +277,10 @@ class MiniMaxBattlePolicy:
 
 class MiniMaxPlayer(BattlePolicy):
 
-    def __init__(self, player_index: int, enable_print=False):
+    def __init__(self):
         super().__init__()
-        self.name = f'Player {player_index}'
-    
-    def __str__(self):
-        print(self.name)
 
     def get_action(self, game: GameState) -> int:
-        policy = MiniMaxBattlePolicy(20)
+        policy = MiniMaxBattlePolicy(5)
         best_move = policy.minimax(game)
         return best_move
