@@ -1,10 +1,10 @@
 from __future__ import annotations
 import numpy as np
 from vgc.behaviour import BattlePolicy
-from vgc.datatypes.Objects import GameState, Weather, PkmMove, Pkm, PkmTeam
-from Agents.Logic.Logic_Agent import KnowledgeBase
-from Agents.MCTS.MCTSBattlePolicies import MCTSBattlePolicy
-from Agents.MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
+from vgc.datatypes.Objects import GameState
+from Logic.Logic_Agent import KnowledgeBase
+from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
+from MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
 from pyvis.network import Network
 from copy import deepcopy
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
