@@ -279,9 +279,12 @@ class MiniMaxPlayer(BattlePolicy):
 
     def __init__(self, depth: int):
         self.depth = depth
+        self.n_switches = 0
         super().__init__()
 
     def get_action(self, game: GameState) -> int:
         policy = MiniMaxBattlePolicy(self.depth)
         best_move = policy.minimax(game)
+        if best_move == 4 or 5:
+            self.n_switches += 1
         return best_move
