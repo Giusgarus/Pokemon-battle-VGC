@@ -12,7 +12,7 @@ from Random_Agent import RandomPolicy
 agents_dict = {
     'Random': RandomPolicy(player_index=1),
     'Logic': LogicPolicy(),
-    'MiniMax': MiniMaxPlayer(),
+    'MiniMax': MiniMaxPlayer(depth=5),
     'MCTS': MCTSBattlePolicy()
 }
 
