@@ -52,14 +52,15 @@ class CombinedPolicy(BattlePolicy):
         actions_priority = self.kb.get_actions_priority()
         #take the four best actions
         top_4_values = sorted(actions_priority, reverse=True)[:4]
-        top_4_indices = [actions_priority.index(value) for value in top_3_values]
+        top_4_indices = [actions_priority.index(value) for value in top_4_values]
 
         my_pkms_not_fainted = my_team.get_not_fainted()
         opp_pkms_not_fainted = opp_team.get_not_fainted()
     
         if len(my_pkms_not_fainted) == 0 and len(opp_pkms_not_fainted) == 0:
           # START MINIMAX
-          MinMaxPlayer = MinMaxPlayer()
+          top_2_indices = [top_4_indices[0], top_4_indices[1]] 
+          MinMaxPlayer = MinMaxPlayer(top_2_indices)
           return MiniMaxPlayer.get_action
         else:
           # START MTCS
