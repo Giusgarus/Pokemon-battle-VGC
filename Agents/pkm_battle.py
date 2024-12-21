@@ -5,7 +5,7 @@ from vgc.datatypes.Objects import PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.util.generator.PkmRosterGenerators import RandomPkmRosterGenerator
 from vgc.util.generator.PkmTeamGenerators import RandomTeamFromRoster
-from util import run_battle, get_params_combinations, write_metrics, get_agents, load_env, get_parameters_from_env
+from util import run_battle, get_params_combinations, write_metrics, get_agents, get_parameters_from_env
 
 
 def main():
@@ -19,23 +19,29 @@ def main():
     # Load informations from arguments got by CLI
     agents = get_agents()
     if agents[0] is None or agents[1] is None: return
-    if not load_env(): return
-    params_space = get_parameters_from_env()
+    params_space_p0, params_space_p1 = get_parameters_from_env()
 
     # Create 2 players based on the agents passed as CLI argument
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
 
+    # Set the parameters for the players 1
+    if params_space_p1 != {}:
+        params_p1 = {}
+        for key, values in params_space_p1.items():
+            params_p1[key] = values[0]
+        try:
+            player1.set_parameters(params_p1)
+        except:
+            pass
+
     # Iterate on each parameters' combination
-    combinations_list: list[dict] = get_params_combinations(params_space)
+    combinations_list: list[dict] = get_params_combinations(params_space_p0)
     print(f'\n=== Total Combinations ===\n{len(combinations_list)}\n=== Number of battles per combination ===\n{combinations_list[0]["N_BATTLES"]}')
     for i, params in enumerate(combinations_list):
-        try:
-            player0.set_parameters(params)
-            player1.set_parameters(params)
-        except:
+        if params_space_p0 != {}:
             try:
-                player1.set_parameters(params)
+                player0.set_parameters(params)
             except:
                 pass
 
@@ -61,7 +67,7 @@ def main():
             metrics_dict = run_battle(player0, player1, env, mode='no_output')
             if metrics_dict['winner'] == 0:
                 player0_winrate += 1
-            print(f'>>> Battle {j+1}/{params["N_BATTLES"]}: player 0 won {player0_winrate}/{j+1} battles ({(player0_winrate/(j+1))*100:.2f}%)')
+            print(f'>>> Battle {j+1}/{params["N_BATTLES"]}: player 0 winrate = {player0_winrate}/{j+1} ({(player0_winrate/(j+1))*100:.2f}%)')
             # Update the metrics dictionary based on the battle done
             overall_metrics_dict['avg_n_turns'] += metrics_dict['n_turns']
             overall_metrics_dict['avg_n_switches'] += metrics_dict['n_switches']

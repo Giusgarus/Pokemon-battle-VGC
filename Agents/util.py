@@ -1,6 +1,7 @@
+from copy import deepcopy
 import os
 import sys
-from dotenv import load_dotenv
+from dotenv import dotenv_values, load_dotenv
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
@@ -11,11 +12,11 @@ from Combined.Combined_Agent import CombinedPolicy
 
 
 agents_dict = {
-    'Random': RandomPolicy(player_index=1),
-    'Logic': LogicPolicy(),
-    'MiniMax': MiniMaxPlayer(depth=5),
-    'MCTS': MCTSBattlePolicy(player_index=1),
-    'Combined': CombinedPolicy()
+    'Random': RandomPolicy,
+    'Logic': LogicPolicy,
+    'MiniMax': MiniMaxPlayer,
+    'MCTS': MCTSBattlePolicy,
+    'Combined': CombinedPolicy
 }
 
 def retrive_args(flag: str, n_next_args=1) -> list:
@@ -64,54 +65,74 @@ def write_metrics(metrics_dict: dict, params: dict):
     return
         
 
-def get_parameters_from_env() -> dict | None:
-    params = {}
-    for key in os.getenv('KEYS').split(','):
-        if os.getenv(key+'_TYPE') == 'int':
-            key_type = int
-        elif os.getenv(key+'_TYPE') == 'float':
-            key_type = float
-        elif os.getenv(key+'_TYPE') == 'bool':
-            key_type = bool
-        else:
-            key_type = str
-        try:
-            params[key] = [key_type(val) for val in os.getenv(key).split(',')]
-        except:
-            print(f'Error parsing {key} in.env file')
-            return None
-    return params
+def get_parameters_from_env() -> tuple:
+    def get_params(env_vars_dict: dict) -> dict:
+        params = {}
+        for key in env_vars_dict['KEYS'].split(','):
+            if env_vars_dict[key+'_TYPE'] == 'int':
+                key_type = int
+            elif env_vars_dict[key+'_TYPE'] == 'float':
+                key_type = float
+            elif env_vars_dict[key+'_TYPE'] == 'bool':
+                key_type = bool
+            else:
+                key_type = str
+            try:
+                params[key] = [key_type(val) for val in env_vars_dict[key].split(',')]
+            except:
+                print(f'Error parsing {key} in.env file')
+                return {}
+        return params
+    # Try to load the environment file for the first player
+    p0_vars_dict = load_env(player_index=0)
+    if not p0_vars_dict: return {}, {}
+    params_player0 = get_params(p0_vars_dict)
+    # Try to load the environment file for the second player
+    p1_vars_dict = load_env(player_index=1)
+    if not p1_vars_dict: return params_player0, {}
+    params_player1 = get_params(p1_vars_dict)
+    return params_player0, params_player1
 
-def load_env() -> bool:
-    args = retrive_args(flag='-e')
-    if args == []:
-        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+def load_env(player_index=0) -> bool:
+    args = retrive_args(flag='-e', n_next_args=2)
+    if len(args) != 2:
+        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return False
-    return load_dotenv(args[0])
+    return dotenv_values(args[player_index])
 
 def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
     agents = retrive_args(flag='-a', n_next_args=2)
     if agents == []:
-        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return None, None
     try:
-        agents_dict[agents[0]]
-        agents_dict[agents[1]]
+        agent0 = agents_dict[agents[0]](0)
     except:
-        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
-        return None, None
-    return agents_dict[agents[0]], agents_dict[agents[1]]
+        try:
+            agent0 = agents_dict[agents[0]]()
+        except:
+            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            return None, None
+    try:
+        agent1 = agents_dict[agents[1]](1)
+    except:
+        try:
+            agent1 = agents_dict[agents[1]]()
+        except:
+            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            return None, None
+    return agent0, agent1
 
 def get_params_combinations(params: dict) -> list[dict]:
         '''
-            Creates and saves into the class instance a list with all the possible combinations of parameters \
-            in the dictionary \"params\".
+        Creates and saves into the class instance a list with all the possible combinations of parameters \
+        in the dictionary \"params\".
 
-            Parameters:
-            - params: dictionary with parameters (keys = parameter_name, values = possible_values_list).
+        Parameters:
+        - params: dictionary with parameters (keys = parameter_name, values = possible_values_list).
 
-            Returns:
-            A list with elements all the possible combinations of parameters as a dict (1 combination = 1 dictionary).
+        Returns:
+        A list with elements all the possible combinations of parameters as a dict (1 combination = 1 dictionary).
         '''
         params_index_dict = {}
         params_combinations = []
