@@ -64,6 +64,6 @@ class CombinedPolicy(BattlePolicy):
           return MiniMaxPlayer.get_action
         else:
           # START MTCS
-          MTCSPlayer = MCTSBattlePolicy()
+          MTCSPlayer = MCTSBattlePolicy(top_4_indices)
           return MTCSPlayer.get_action 
           
