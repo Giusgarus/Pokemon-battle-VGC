@@ -4,7 +4,7 @@ from vgc.behaviour import BattlePolicy
 from vgc.datatypes.Objects import GameState
 from Logic.Logic_Agent import KnowledgeBase
 from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
-from MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
+from Combined.Combined_minimax import MiniMaxPlayer
 from pyvis.network import Network
 from copy import deepcopy
 from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
@@ -60,7 +60,7 @@ class CombinedPolicy(BattlePolicy):
         if len(my_pkms_not_fainted) == 0 and len(opp_pkms_not_fainted) == 0:
           # START MINIMAX
           top_2_indices = [top_4_indices[0], top_4_indices[1]] 
-          MinMaxPlayer = MinMaxPlayer(top_2_indices)
+          MinMaxPlayer = MinMaxPlayer(5,top_2_indices)
           return MiniMaxPlayer.get_action
         else:
           # START MTCS

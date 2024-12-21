@@ -225,11 +225,7 @@ class MiniMaxBattlePolicy:
             return self.evaluate(game, 0)
         else :
             min_eval = float('inf')
-            for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
-                if move == 4 and game.teams[1].party[0].fainted == True:
-                    continue
-                if move == 5 and game.teams[1].party[1].fainted == True:
-                    continue
+            for move in range(DEFAULT_PKM_N_MOVES):
                 new_game_state = simulate_move(game, move, 1)
                 eval = self.max(new_game_state, depth - 1, alpha, beta)
                 min_eval = min(min_eval, eval)
@@ -246,11 +242,7 @@ class MiniMaxBattlePolicy:
             return self.evaluate(game, 0)
         else :
             max_eval = float('-inf')
-            for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
-                if move == 4 and game.teams[0].party[0].fainted == True:
-                    continue
-                if move == 5 and game.teams[0].party[1].fainted == True:
-                    continue
+            for move in range(DEFAULT_PKM_N_MOVES):
                 new_game_state = simulate_move(game, move, 0)
                 eval = self.mini(new_game_state, depth - 1, alpha, beta)
                 max_eval = max(max_eval, eval)
@@ -262,14 +254,10 @@ class MiniMaxBattlePolicy:
 
 
     
-    def minimax(self, game: GameState) -> int:
+    def minimax(self, game: GameState, top2moves: list) -> int:
         best_move = None
         best_value = float('-inf')
-        for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
-            if move == 4 and game.teams[0].party[0].fainted == True:
-                continue
-            if move == 5 and game.teams[0].party[1].fainted == True:
-                continue
+        for move in top2moves:
             new_game_state = simulate_move(game, move, 0)
             move_value = self.max(new_game_state, self.depth - 1, float('-inf'), float('inf'))
             if move_value > best_value:
@@ -281,14 +269,15 @@ class MiniMaxBattlePolicy:
 
 class MiniMaxPlayer(BattlePolicy):
 
-    def __init__(self, depth: int):
+    def __init__(self, depth: int, top2moves: list):
         self.depth = depth
+        self.top2moves = top2moves
         self.n_switches = 0
         super().__init__()
 
     def get_action(self, game: GameState) -> int:
         policy = MiniMaxBattlePolicy(self.depth)
-        best_move = policy.minimax(game)
+        best_move = policy.minimax(game, self.top2moves)
         if best_move == 4 or 5:
             self.n_switches += 1
         return best_move
