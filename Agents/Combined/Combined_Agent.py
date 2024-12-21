@@ -64,7 +64,7 @@ class CombinedPolicy(BattlePolicy):
     if len(my_pkms_not_fainted) == 0 and len(opp_pkms_not_fainted) == 0:
       # START MINIMAX
       top_2_indices = [top_4_indices[0], top_4_indices[1]] 
-      LastPlayer = MiniMaxPlayer(5,top_2_indices)
+      LastPlayer = MiniMaxPlayer(7,top_2_indices)
       return LastPlayer.get_action(g)
     else:
       # START MTCS

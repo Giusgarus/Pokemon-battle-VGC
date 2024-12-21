@@ -32,8 +32,12 @@ def main():
     for i, params in enumerate(combinations_list):
         try:
             player0.set_parameters(params)
+            player1.set_parameters(params)
         except:
-            pass
+            try:
+                player1.set_parameters(params)
+            except:
+                pass
 
         # Perform "N_BATTLES" battles
         player0_winrate = 0

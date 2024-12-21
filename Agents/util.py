@@ -14,7 +14,7 @@ agents_dict = {
     'Random': RandomPolicy(player_index=1),
     'Logic': LogicPolicy(),
     'MiniMax': MiniMaxPlayer(depth=5),
-    'MCTS': MCTSBattlePolicy(),
+    'MCTS': MCTSBattlePolicy(player_index=1),
     'Combined': CombinedPolicy()
 }
 
