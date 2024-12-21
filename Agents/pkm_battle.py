@@ -28,7 +28,7 @@ def main():
 
     # Iterate on each parameters' combination
     combinations_list: list[dict] = get_params_combinations(params_space)
-    print(f'\n=== Total Combinations ===\n{len(combinations_list)}\n=== Number of battles per combination ===\n{combinations_list[0]["N_BATTLES"]}\n')
+    print(f'\n=== Total Combinations ===\n{len(combinations_list)}\n=== Number of battles per combination ===\n{combinations_list[0]["N_BATTLES"]}')
     for i, params in enumerate(combinations_list):
         try:
             player0.set_parameters(params)
@@ -37,6 +37,7 @@ def main():
 
         # Perform "N_BATTLES" battles
         player0_winrate = 0
+        print(f'\n=== Combination ===\n{i+1}/{len(combinations_list)}\n=== Parameters ===\n{params}\nBattles:')
         for j in range(params['N_BATTLES']):
             # Random pokemon roster and team generators
             pkm_roster = RandomPkmRosterGenerator().gen_roster()
@@ -70,7 +71,7 @@ def main():
         overall_metrics_dict['avg_hp_residue'] = round(number=(overall_metrics_dict['avg_hp_residue']/params['N_BATTLES']), ndigits=2)
         overall_metrics_dict['winrate'] = round(number=(player0_winrate/params['N_BATTLES'])*100, ndigits=2)
         # Print and save metrics
-        print(f'\n=== Winrate ===\n{overall_metrics_dict["winrate"]}%\n=== Combination ===\n{i+1}/{len(combinations_list)}\n=== Parameters ===\n{params}\n')
+        print(f'\n=== Parameters ===\n{params}\n=== Winrate ===\n{overall_metrics_dict["winrate"]}%')
         write_metrics(
             metrics_dict=overall_metrics_dict,
             params=params
