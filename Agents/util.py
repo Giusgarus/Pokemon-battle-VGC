@@ -102,16 +102,26 @@ def load_env(player_index=0) -> bool:
 
 def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
     agents = retrive_args(flag='-a', n_next_args=2)
+    try:
+        n_params = retrive_args(flag='-p', n_next_args=1)[0]
+        keys_values = retrive_args(flag='-p', n_next_args=n_params+1)[1:]
+    except:
+        keys_values = []
+    params_dict = {}
+    for key_value in keys_values:
+        key, value = key_value.split('=')
+        params_dict[key] = value
     if agents == []:
-        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return None, None
     try:
-        agent0 = agents_dict[agents[0]](0)
+        params_dict['player_index'] = 0
+        agent0 = agents_dict[agents[0]](**params_dict)
     except:
         try:
             agent0 = agents_dict[agents[0]]()
         except:
-            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
             return None, None
     try:
         agent1 = agents_dict[agents[1]](1)
@@ -119,7 +129,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
         try:
             agent1 = agents_dict[agents[1]]()
         except:
-            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
             return None, None
     return agent0, agent1
 
