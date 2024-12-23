@@ -276,11 +276,13 @@ class MiniMaxBattlePolicy:
             new_game_state = simulate_move(game, move, idx)
             move_value = self.mini(new_game_state, self.depth - 1, float('-inf'), float('inf'))
             if move_value > best_value:
+                if move in [4,5] and abs(move_value - best_value) < 3000:
+                    continue
                 best_value = move_value
                 best_move = move
         return best_move
 
-    
+
 
 class MiniMaxPlayer(BattlePolicy):
 
