@@ -86,9 +86,10 @@ def get_residual_hp(game: GameState, player: bool) -> Tuple[int, int]:
 
 class MiniMaxBattlePolicy:
     
-    def __init__(self, depth:int, player: bool):
+    def __init__(self, depth:int, player: bool, life_value = 500):
         self.player = player
         self.depth = depth
+        self.life_value = life_value
 
     def evaluate(self, game: GameState, player: bool) -> float:
 
@@ -114,9 +115,9 @@ class MiniMaxBattlePolicy:
 
         # Considera la salute residua dei Pokémon
         for pkm in my_team.get_pkm_list():
-            my_score += 500*(pkm.hp / pkm.max_hp)
+            my_score += self.life_value*(pkm.hp / pkm.max_hp)
         for pkm in opp_team.get_pkm_list():
-            opp_score += 500*(pkm.hp / pkm.max_hp)
+            opp_score += self.life_value*(pkm.hp / pkm.max_hp)
 
         # Considera il numero di Pokémon rimasti
         my_score += 500*len([pkm for pkm in my_team.get_pkm_list() if pkm.hp > 0])
@@ -264,7 +265,7 @@ class MiniMaxBattlePolicy:
 
 
     
-    def minimax(self, game: GameState) -> int:
+    def minimax(self, game: GameState, switch_treshold: int) -> int:
         best_move = None
         best_value = float('-inf')
         idx = 0 if self.player == 0 else 1
@@ -276,7 +277,7 @@ class MiniMaxBattlePolicy:
             new_game_state = simulate_move(game, move, idx)
             move_value = self.mini(new_game_state, self.depth - 1, float('-inf'), float('inf'))
             if move_value > best_value:
-                if move in [4,5] and abs(move_value - best_value) < 3000:
+                if move in [4,5] and abs(move_value - best_value) < switch_treshold:
                     continue
                 best_value = move_value
                 best_move = move
@@ -292,9 +293,14 @@ class MiniMaxPlayer(BattlePolicy):
         self.n_switches = 0
         super().__init__()
 
+
+    def set_parameters(self, params: dict):
+        self.params = params
+        
+
     def get_action(self, game: GameState) -> int:
-        policy = MiniMaxBattlePolicy(self.depth,self.player_index)
-        best_move = policy.minimax(game)
+        policy = MiniMaxBattlePolicy(self.depth,self.player_index, self.params['LIFE_VALUE'])
+        best_move = policy.minimax(game, self.params['SWITCH_TRESHOLD'])
         if best_move in [4,5]:
             self.n_switches += 1
         return best_move
