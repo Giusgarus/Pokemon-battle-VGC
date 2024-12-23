@@ -67,6 +67,8 @@ def write_metrics(metrics_dict: dict, params: dict):
 
 def get_parameters_from_env() -> tuple:
     def get_params(env_vars_dict: dict) -> dict:
+        for key, value in env_vars_dict.items():
+            env_vars_dict[key] = value.replace(' ', '')
         params = {}
         for key in env_vars_dict['KEYS'].split(','):
             if env_vars_dict[key+'_TYPE'] == 'int':
