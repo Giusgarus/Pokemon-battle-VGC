@@ -1,2 +1,13 @@
 agent0;agent1;N_BATTLES;winrate;avg_n_turns;avg_n_switches;avg_hp_residue
 MiniMax;Random;10;30.0;13.5;3.6;11.88
+MiniMax;Random;100;28.0;12.7;4.51;13.64
+MiniMax;Random;10;20.0;13.3;6.1;7.22
+MiniMax;Random;10;60.0;11.5;2.4;23.64
+MiniMax;Random;10;40.0;11.1;5.9;19.32
+MiniMax;Random;10;10.0;11.9;9.3;4.23
+MiniMax;Random;10;10.0;13.8;11.6;4.7
+MiniMax;Random;10;0.0;12.8;10.6;0.0
+MiniMax;Random;10;0.0;14.9;11.6;0.0
+MiniMax;Random;10;10.0;13.1;11.5;7.14
+MiniMax;Random;10;20.0;15.1;10.1;14.84
+MiniMax;Random;10;10.0;14.6;10.6;1.5

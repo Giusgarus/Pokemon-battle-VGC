@@ -106,9 +106,9 @@ class MiniMaxBattlePolicy:
         my_tot_hp, opp_tot_hp = get_residual_hp(game, player)
 
         if(opp_tot_hp == 0):
-            my_score += 10000
+            my_score += 2000
         elif(my_tot_hp == 0):
-            opp_score += 10000
+            opp_score += 2000
 
 
         # Considera la salute residua dei Pokémon
