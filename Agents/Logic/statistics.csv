@@ -1,0 +1,7 @@
+agent0;agent1;N_BATTLES;winrate;avg_n_turns;avg_n_switches;avg_hp_residue
+Logic;Random;300;79.67;10.5;0.55;40.18
+Logic;Random;300;74.0;10.4;0.72;38.06
+Logic;Random;300;73.0;10.48;0.71;36.95
+Logic;Random;100;68.0;10.71;0.71;36.52
+Logic;Random;100;73.0;11.56;0.61;33.3
+Logic;Random;100;71.0;10.1;0.79;39.73
