@@ -151,6 +151,12 @@ class MonteCarloTreeSearch():
     '''
 
     def __init__(self, player_index: int, env: PkmBattleEnv, enable_print: bool, enable_tree_visualization=False):
+        '''
+        - player_index: the index of the player which identifies the own team in the PkmBattleEnv.
+        - env: the environment of the battle.
+        - enable_print: boolean value which enables the output print.
+        - enable_tree_visualization: boolean value which enables the creation of the graphical tree to visualize it.
+        '''
         self.node_counter = 1
         self.kb = KnowledgeBase()
         self.root: MCTSNode = MCTSNode(id=self.node_counter, env=env)
@@ -169,9 +175,13 @@ class MonteCarloTreeSearch():
 
     def selection(self, ucb1_C_value=1.5) -> MCTSNode:
         '''
-        Implements the Selection phase, which consists in follow a path (using the Selection policies) in the tree \
-        until a leaf is found. In the children's list of the node, is searched the node which maximizes the UCB1 formula, \
-        which is used in the "Upper Confidence bound applied to Trees" (UCT) Selection Policy (to choose a path in the tree).
+        Implements the Selection phase, which consists in follow a path (using the Selection policies) in the tree
+        until a leaf is found. In the children's list of the current node (in a general iteration), is searched the
+        node which maximizes the UCB1 formula, which is used in the "Upper Confidence bound applied to Trees" (UCT)
+        Selection Policy (to choose a path in the tree).
+
+        Params:
+        - ucb1_C_value: the value of the constant C in the UCB1 formula.
 
         Return:
         The leaf found at the end of the path.
@@ -185,6 +195,7 @@ class MonteCarloTreeSearch():
             exploration_term = np.sqrt(np.log(n.parent.total_playouts) / n.total_playouts)
             C = ucb1_C_value
             return exploitation_term + (C * exploration_term)
+        # Selection phase iterations
         node = self.root
         while not node.is_leaf:
             best_child = node.children[0]
@@ -192,17 +203,20 @@ class MonteCarloTreeSearch():
                 if UCB1(child) > UCB1(best_child):
                     best_child = child
             node = best_child
+        # Case of print
         if self.enable_print:
             print(f'Selected: {node.id}')
         return node
 
     def expansion(self, node: MCTSNode, number_my_top_moves=1, number_opp_top_moves=1) -> list[MCTSNode]:
         '''
-        Implements the Expansion phase used to generate new nodes from the current one.
+        Implements the Expansion phase used to generate new nodes from the current one. Notice that the
+        branching factor will be equal to: number_my_top_moves * number_opp_top_moves.
 
         Params:
         - node: the node on which perform the expansion.
-        - number_of_top_moves: the number of best moves which are used for the expansion (branching factor = number_of_top_moves * 2).
+        - number_my_top_moves: the number of my top moves which are used for the expansion.
+        - number_opp_top_moves: the number of opponent top moves which are used for the expansion.
 
         Returns:
         The list of the children generated from the current node.
@@ -252,6 +266,7 @@ class MonteCarloTreeSearch():
                     label=f'{my_move_name}|{opp_move_name}'
                 )
         node.is_leaf = False
+        # Case of print
         if self.enable_print:
             print(f'Expanded {number_my_top_moves} nodes: {node.id} -> {[n.id for n in node.children]}')
         return node.children
@@ -264,13 +279,17 @@ class MonteCarloTreeSearch():
         - leafs: list of nodes from which the simulation starts.
 
         Returns:
-        The list of nodes having terminal state.
+        The list of nodes with terminal state obtained by the simulations.
         '''
         def get_next_node(n: MCTSNode) -> MCTSNode:
             '''
             Implements the Playout policy used by the simulation to choose the next node from the current one. In this case the move \
-            is randomly generated.\n
-            Return:
+            is randomly generated (like the Pure MCTS algorithm provides).
+
+            Params:
+            - n: the current node from which the next node has to be chosen.
+
+            Returns:
             The next node chosen for a single step of the simulation.
             '''
             actions_comb_list = n.get_all_actions_combinations()
@@ -324,7 +343,7 @@ class MonteCarloTreeSearch():
 
     def backpropagation(self, nodes: list[MCTSNode]) -> None:
         '''
-        Implements the Backpropagation phase, which updates the evaluation of the nodes from the starting one to the root.
+        Implements the Backpropagation phase, which updates the utility of the nodes from the starting one to the root.
 
         Params:
         - nodes: the nodes from which the backpropagation starts.
@@ -369,24 +388,27 @@ class MonteCarloTreeSearch():
 
 class MCTSBattlePolicy(BattlePolicy):
     '''
-    Agent which uses the Monte Carlo Tree Search (MCTS) approach as policy to choose the actions.
+    Agent which uses the Monte Carlo Tree Search (MCTS) approach as policy to choose the next action.
     '''
 
     def __init__(self, player_index=0, enable_print=False, enable_tree_visualization=False):
         super().__init__()
-        self.name = f'Player {player_index}'
         self.player_index = player_index
         self.enable_print = enable_print
         self.enable_tree_visualization = enable_tree_visualization
         self.tree = None
         self.n_switches = 0
     
-    def __str__(self):
-        print(self.name)
-    
     def generate_tree(self, id: int):
+        '''
+        Generates a visualization of the current structure of the tree in a HTML file.
+
+        Params:
+        - id: the identifier of the tree used to create a unique file.
+        '''
         if self.tree is not None and self.tree.enable_tree_visualization:
-            self.tree.net.set_options("""
+            self.tree.net.set_options(
+                """
                 var options = {
                 "physics": {
                     "enabled": true,
@@ -404,17 +426,24 @@ class MCTSBattlePolicy(BattlePolicy):
             self.tree.net.show(f'Agents/MCTS/MCTS_trees/tree_{self.player_index}-{id}.html', notebook=False)
     
     def set_parameters(self, params: dict):
+        '''
+        Save the parameters in a class-local variable to use them to choose the next actions.
+        
+        Params:
+        - params: dictionary containing the parameters to be saved which has to contain the following keys:
+        N_BATTLES, C, N, MY_EXPANSION, OPP_EXPANSION, SWITCH_COND, SIMILAR_UTILITY_COND1, SIMILAR_UTILITY_COND2.
+        '''
         self.params = params
 
     def get_action(self, state: GameState) -> int:
         '''
-        Implements the Pure Monte Carlo Tree Search (MCTS) algorithm.
+        Implements the Pure Monte Carlo Tree Search (MCTS) algorithm to choose the next move.
 
         Params:
-        - n: number of simulations to perform.
+        - state: instance of GameState class representing the current state of the game.
 
         Returns:
-        The node with higher utility value computed by simulating moves with the MCTS algorithm.
+        The best node chosen by the MCTS algorithm.
         '''
         # Initializations
         N = self.params['N']
@@ -433,7 +462,7 @@ class MCTSBattlePolicy(BattlePolicy):
             if self.enable_print:
                 print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
             leaf = tree.selection(self.params['C'])
-            children = tree.expansion(leaf, number_my_top_moves=self.params['MY_EXPANSION'], number_opp_top_moves=self.params['OPP_EXPANSION'])
+            children = tree.expansion(leaf, number_my_top_moves=self.params['MY_TOP_MOVES'], number_opp_top_moves=self.params['OPP_TOP_MOVES'])
             terminal_nodes = tree.simulation(children)
             tree.backpropagation(terminal_nodes)
         # Case of no possible moves
@@ -445,11 +474,11 @@ class MCTSBattlePolicy(BattlePolicy):
             best_node_utility = best_node.utility_playouts / best_node.total_playouts
             this_node_utility = child.utility_playouts / child.total_playouts
             # Case of switch action skipped if there is a difference between the utility values < HEURISTIC_COND1 (~0.02/0.05)
-            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['HEURISTIC_COND1']:
+            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['SWITCH_COND']:
                 continue
             # Case of current node with total number of playouts > HEURISTIC_COND2_1 times the best node's total number of playouts and similar utility values
-            if child.total_playouts > best_node.total_playouts * self.params['HEURISTIC_COND2_1'] \
-                and abs(this_node_utility - best_node_utility) < self.params['HEURISTIC_COND2_2']:
+            if child.total_playouts > best_node.total_playouts * self.params['SIMILAR_UTILITY_COND1'] \
+                and abs(this_node_utility - best_node_utility) < self.params['SIMILAR_UTILITY_COND2']:
                 best_node = child
                 continue
             # Case of child with better utility value

@@ -1,11 +1,9 @@
-from copy import deepcopy
-import sys
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.datatypes.Objects import PkmFullTeam
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.util.generator.PkmRosterGenerators import RandomPkmRosterGenerator
 from vgc.util.generator.PkmTeamGenerators import RandomTeamFromRoster
-from util import run_battle, get_params_combinations, write_metrics, get_agents, get_parameters_from_env
+from utils import run_battle, get_params_combinations, write_metrics, get_agents, get_parameters_from_env
 
 
 def main():
@@ -21,11 +19,11 @@ def main():
     if agents[0] is None or agents[1] is None: return
     params_space_p0, params_space_p1 = get_parameters_from_env()
 
-    # Create 2 players based on the agents passed as CLI argument
+    # Create 2 players based on the agents passed as command line arguments
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
 
-    # Set the parameters for the players 1
+    # Set the fixed parameters for the players 1
     if params_space_p1 != {}:
         params_p1 = {}
         for key, values in params_space_p1.items():
@@ -39,13 +37,15 @@ def main():
     combinations_list: list[dict] = get_params_combinations(params_space_p0)
     print(f'\n=== Total Combinations ===\n{len(combinations_list)}\n=== Number of battles per combination ===\n{combinations_list[0]["N_BATTLES"]}')
     for i, params in enumerate(combinations_list):
+
+        # Set the parameters of this combination for the players 0
         if params_space_p0 != {}:
             try:
                 player0.set_parameters(params)
             except:
                 pass
 
-        # Perform "N_BATTLES" battles
+        # Performs "N_BATTLES" battles
         player0_winrate = 0
         print(f'\n=== Combination ===\n{i+1}/{len(combinations_list)}\n=== Parameters ===\n{params}\nBattles:')
         for j in range(params['N_BATTLES']):
@@ -75,22 +75,21 @@ def main():
             # Reset the environment
             env.reset()
             player0.n_switches = 0
-        # Compute the average of the metrics
+
+        # Compute the average of the metrics and save them
         overall_metrics_dict['avg_n_turns'] = round(number=(overall_metrics_dict['avg_n_turns']/params['N_BATTLES']), ndigits=2)
         overall_metrics_dict['avg_n_switches'] = round(number=(overall_metrics_dict['avg_n_switches']/params['N_BATTLES']), ndigits=2)
         overall_metrics_dict['avg_hp_residue'] = round(number=(overall_metrics_dict['avg_hp_residue']/params['N_BATTLES']), ndigits=2)
         overall_metrics_dict['winrate'] = round(number=(player0_winrate/params['N_BATTLES'])*100, ndigits=2)
+        write_metrics(metrics_dict=overall_metrics_dict, params=params)
+
         # Print and save metrics
         print(f'\n=== Parameters ===\n{params}\n=== Winrate ===\n{overall_metrics_dict["winrate"]}%')
-        write_metrics(
-            metrics_dict=overall_metrics_dict,
-            params=params
-        )
+
         # Reset metrics
-        overall_metrics_dict['avg_n_turns'] = 0
-        overall_metrics_dict['avg_n_switches'] = 0
-        overall_metrics_dict['avg_hp_residue'] = 0
-        overall_metrics_dict['winrate'] = 0
+        for key in overall_metrics_dict.keys():
+            overall_metrics_dict[key] = 0
+
     return
 
 
