@@ -7,10 +7,11 @@ import math
 
 class LogicPolicy(BattlePolicy):
 
-  def __init__(self):
+  def __init__(self, player_index=0):
         super().__init__()  # Call the BattlePolicy constructor
         self.kb = KnowledgeBase()  # KnowledgeBase initialization 
         self.n_switches = 0
+        self.player_index = player_index
 
   def get_action(self, g: GameState) -> int:
 
@@ -18,7 +19,7 @@ class LogicPolicy(BattlePolicy):
         weather = g.weather
 
         # Get information about my team:
-        my_team = g.teams[0]
+        my_team = g.teams[self.player_index]
         my_active = my_team.active
         my_hp = my_active.hp
         my_max_hp = my_active.max_hp
@@ -31,7 +32,7 @@ class LogicPolicy(BattlePolicy):
 
         
         # Get information about opponent team:
-        opp_team = g.teams[1]
+        opp_team = g.teams[(self.player_index+1)%2]
         opp_active = opp_team.active
         opp_pkm_type = opp_active.type
 
