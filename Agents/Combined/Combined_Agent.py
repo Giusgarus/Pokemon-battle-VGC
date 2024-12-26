@@ -15,10 +15,11 @@ import math
 
 class CombinedPolicy(BattlePolicy):
 
-  def __init__(self):
+  def __init__(self, player_index: int = 0):
     super().__init__()  # Call the BattlePolicy constructor
     self.kb = KnowledgeBase()  # KnowledgeBase initialization 
     self.n_switches = 0
+    self.player_index = player_index
 
 
   def set_parameters(self, params: dict):
@@ -30,7 +31,7 @@ class CombinedPolicy(BattlePolicy):
     weather = g.weather
 
     # Get information about my team:
-    my_team = g.teams[0]
+    my_team = g.teams[self.player_index]
     my_active = my_team.active
     my_hp = my_active.hp
     my_max_hp = my_active.max_hp
@@ -43,8 +44,9 @@ class CombinedPolicy(BattlePolicy):
     my_type_party = [my_switch[0].type, my_switch[1].type]
 
         
+    
     # Get information about opponent team:
-    opp_team = g.teams[1]
+    opp_team = g.teams[(self.player_index+1)%2]
     opp_active = opp_team.active
     opp_pkm_type = opp_active.type
 
@@ -64,11 +66,11 @@ class CombinedPolicy(BattlePolicy):
     if len(my_pkms_not_fainted) == 0 and len(opp_pkms_not_fainted) == 0:
       # START MINIMAX
       top_2_indices = [top_4_indices[0], top_4_indices[1]] 
-      LastPlayer = MiniMaxPlayer(7,top_2_indices)
-      return LastPlayer.get_action(g)
+      LastPlayer = MiniMaxPlayer(self.player_index, 7)
+      return LastPlayer.get_action(g, top_2_indices)
     else:
       # START MTCS
-      MCTSPlayer = MCTSBattlePolicy()
+      MCTSPlayer = MCTSBattlePolicy(self.player_index)
       MCTSPlayer.set_parameters(self.params)
       return MCTSPlayer.get_action(g)
           

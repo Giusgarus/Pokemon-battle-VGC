@@ -11,6 +11,19 @@ from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
 from vgc.competition.StandardPkmMoves import Struggle
 
 
+from copy import deepcopy
+import numpy as np
+from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
+from typing import Tuple
+
+from vgc.behaviour import BattlePolicy
+from vgc.engine.PkmBattleEnv import PkmBattleEnv
+from vgc.datatypes.Constants import DEFAULT_PKM_N_MOVES, DEFAULT_PARTY_SIZE, TYPE_CHART_MULTIPLIER, DEFAULT_N_ACTIONS
+from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
+from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
+from vgc.competition.StandardPkmMoves import Struggle
+
+
 def damage_prediction(move_type: PkmType, pkm_type: PkmType, move_power: float, opp_pkm_type: PkmType,
                     attack_stage: int, defense_stage: int, weather: WeatherCondition) -> float:
         stab = 1.5 if move_type == pkm_type else 1.0
@@ -86,8 +99,10 @@ def get_residual_hp(game: GameState, player: bool) -> Tuple[int, int]:
 
 class MiniMaxBattlePolicy:
     
-    def __init__(self, depth):
+    def __init__(self, depth:int, player: bool, life_value: int = 500):
+        self.player = player
         self.depth = depth
+        self.life_value = life_value
 
     def evaluate(self, game: GameState, player: bool) -> float:
 
@@ -112,11 +127,10 @@ class MiniMaxBattlePolicy:
 
 
         # Considera la salute residua dei Pokémon
-        '''Ricontrolla punteggio HP normalizzato'''
         for pkm in my_team.get_pkm_list():
-            my_score += 500*(pkm.hp / pkm.max_hp)
+            my_score += self.life_value*(pkm.hp / pkm.max_hp)
         for pkm in opp_team.get_pkm_list():
-            opp_score += 500*(pkm.hp / pkm.max_hp)
+            opp_score += self.life_value*(pkm.hp / pkm.max_hp)
 
         # Considera il numero di Pokémon rimasti
         my_score += 500*len([pkm for pkm in my_team.get_pkm_list() if pkm.hp > 0])
@@ -166,7 +180,7 @@ class MiniMaxBattlePolicy:
                 opp_score -= 100
 
 
-        '''Blocco rigurdante vantaggi delel condizioni metereologiche'''
+
         # Considera il vantaggio delle mosse per condizioni meteorologiche del team
         weather = game.weather
         for i,move in enumerate(my_team.active.moves):
@@ -222,62 +236,66 @@ class MiniMaxBattlePolicy:
     def mini(self, game: GameState, depth: int, alpha, beta) -> float:
         residual_hp = get_residual_hp(game, 0)
         if depth == 0 or residual_hp[1] ==0 or residual_hp[0] == 0:
-            return self.evaluate(game, 0)
+            return self.evaluate(game, self.player)
         else :
             min_eval = float('inf')
+            idx = 0 if self.player == 1 else 1
             for move in range(DEFAULT_PKM_N_MOVES):
-                new_game_state = simulate_move(game, move, 1)
+                new_game_state = simulate_move(game, move, idx)
                 eval = self.max(new_game_state, depth - 1, alpha, beta)
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
                 #CONTROLLA CONDIZIONE
                 if eval <= alpha:
                     break
-            return min_eval + self.evaluate(game, 0)
+            return min_eval + self.evaluate(game, self.player)
 
 
     def max(self, game: GameState, depth: int, alpha, beta) -> float:
         residual_hp = get_residual_hp(game, 0)
         if depth == 0 or residual_hp[1] ==0 or residual_hp[0] == 0:
-            return self.evaluate(game, 0)
+            return self.evaluate(game, self.player)
         else :
             max_eval = float('-inf')
+            idx = 0 if self.player == 0 else 1
             for move in range(DEFAULT_PKM_N_MOVES):
-                new_game_state = simulate_move(game, move, 0)
+                new_game_state = simulate_move(game, move, idx)
                 eval = self.mini(new_game_state, depth - 1, alpha, beta)
                 max_eval = max(max_eval, eval)
                 alpha = max(alpha, eval)
                 #CONTROLLA CONDIZIONE
                 if beta <= eval:
                     break
-            return max_eval +self.evaluate(game, 0)
+            return max_eval +self.evaluate(game, self.player)
 
 
     
     def minimax(self, game: GameState, top2moves: list) -> int:
         best_move = None
         best_value = float('-inf')
+        idx = 0 if self.player == 0 else 1
         for move in top2moves:
-            new_game_state = simulate_move(game, move, 0)
-            move_value = self.max(new_game_state, self.depth - 1, float('-inf'), float('inf'))
+            new_game_state = simulate_move(game, move, idx)
+            move_value = self.mini(new_game_state, self.depth - 1, float('-inf'), float('inf'))
             if move_value > best_value:
                 best_value = move_value
                 best_move = move
         return best_move
-    
-    
+
+
 
 class MiniMaxPlayer(BattlePolicy):
 
-    def __init__(self, depth: int, top2moves: list):
+    def __init__(self, player_index = 0, depth: int = 5):
+        self.player_index = player_index
         self.depth = depth
-        self.top2moves = top2moves
         self.n_switches = 0
         super().__init__()
+        
 
-    def get_action(self, game: GameState) -> int:
-        policy = MiniMaxBattlePolicy(self.depth)
-        best_move = policy.minimax(game, self.top2moves)
+    def get_action(self, game: GameState,  top2moves: list) -> int:
+        policy = MiniMaxBattlePolicy(self.depth,self.player_index, 300)
+        best_move = policy.minimax(game, top2moves)
         if best_move in [4,5]:
             self.n_switches += 1
         return best_move
