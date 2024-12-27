@@ -168,17 +168,21 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
     try:
         params_dict['player_index'] = 0
         agent0 = agents_dict[agents[0]](**params_dict)
+        #print(f'First agent with parameters:\n{agent0}') # debug
     except:
         try:
             agent0 = agents_dict[agents[0]]()
+            #print(f'First agent with NO parameters:\n{agent0}') # debug
         except:
             print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
             return None, None
     try:
         agent1 = agents_dict[agents[1]](1)
+        #print(f'Second agent with parameters:\n{agent1}') # debug
     except:
         try:
             agent1 = agents_dict[agents[1]]()
+            #print(f'First agent with NO parameters:\n{agent1}') # debug
         except:
             print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
             return None, None
