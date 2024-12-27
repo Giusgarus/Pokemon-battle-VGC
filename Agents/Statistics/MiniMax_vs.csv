@@ -1,0 +1,4 @@
+agent0;agent1;N_BATTLES;SWITCH_TRESHOLD;LIFE_VALUE;winrate;avg_n_turns;avg_n_switches;avg_hp_residue
+MiniMax;Logic;300;5000;300;69.0;15.85;0.57;40.29
+MiniMax;Logic;100;5000;300;67.0;14.28;0.41;38.89
+MiniMax;Combined;300;5000;300;29.67;12.98;1.33;11.92
