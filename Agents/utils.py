@@ -260,7 +260,7 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
     # Perform a single battle until it's terminated
     index = 0
     terminated = False
-    while not terminated:
+    while not terminated and index < 100:
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
         try:
@@ -280,5 +280,5 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
         hp_resudue += pkm.hp
         tot_hp += pkm.max_hp
     metrics_dict['hp_residue'] = round(number=(100/tot_hp) * hp_resudue, ndigits=2)
-    metrics_dict['winner'] = env.winner
+    metrics_dict['winner'] = env.winner if index < 100 else 0.5
     return metrics_dict

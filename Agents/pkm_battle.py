@@ -65,8 +65,13 @@ def main():
             )
             # Run the battle
             metrics_dict = run_battle(player0, player1, env, mode='no_output')
+            # Case of player 0 winner
             if metrics_dict['winner'] == 0:
                 player0_winrate += 1
+            # Case of no winner
+            if metrics_dict['winner'] == 0.5:
+                j -= 1
+                continue
             print(f'>>> Battle {j+1}/{params["N_BATTLES"]}: player 0 winrate = {player0_winrate}/{j+1} ({(player0_winrate/(j+1))*100:.2f}%)')
             # Update the metrics dictionary based on the battle done
             overall_metrics_dict['avg_n_turns'] += metrics_dict['n_turns']
