@@ -446,6 +446,25 @@ class MCTSBattlePolicy(BattlePolicy):
         Returns:
         The best node chosen by the MCTS algorithm.
         '''
+
+        def heuristic(children: list[MCTSNode]) -> MCTSNode:
+            best_node = children[0]
+            for child in children:
+                best_node_utility = best_node.utility_playouts / best_node.total_playouts
+                this_node_utility = child.utility_playouts / child.total_playouts
+                # Case of switch action skipped if there is a difference between the utility values < SWITCH_COND (~0.02/0.05)
+                if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['SWITCH_COND']:
+                    continue
+                # Case of current node with total number of playouts > SIMILAR_UTILITY_COND1 times the best node's total number of playouts and similar utility values
+                if child.total_playouts > best_node.total_playouts * self.params['TOTAL_PLAYOUTS_COND1'] \
+                    and abs(this_node_utility - best_node_utility) < self.params['TOTAL_PLAYOUTS_COND2']:
+                    best_node = child
+                    continue
+                # Case of child with better utility value
+                if this_node_utility > best_node_utility:
+                    best_node = child
+            return best_node
+
         # Initializations
         N = self.params['N']
         state_copy: GameState = deepcopy(state)
@@ -466,22 +485,9 @@ class MCTSBattlePolicy(BattlePolicy):
         # Case of no possible moves
         if tree.root.children == []:
             return None
-        # Choose the move
-        best_node = tree.root.children[0]
-        for child in tree.root.children:
-            best_node_utility = best_node.utility_playouts / best_node.total_playouts
-            this_node_utility = child.utility_playouts / child.total_playouts
-            # Case of switch action skipped if there is a difference between the utility values < SWITCH_COND (~0.02/0.05)
-            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['SWITCH_COND']:
-                continue
-            # Case of current node with total number of playouts > SIMILAR_UTILITY_COND1 times the best node's total number of playouts and similar utility values
-            if child.total_playouts > best_node.total_playouts * self.params['TOTAL_PLAYOUTS_COND1'] \
-                and abs(this_node_utility - best_node_utility) < self.params['TOTAL_PLAYOUTS_COND2']:
-                best_node = child
-                continue
-            # Case of child with better utility value
-            if this_node_utility > best_node_utility:
-                best_node = child
+        # Choose the best move based on the heuristic function
+        best_node = heuristic(tree.root.children)
+        # Update the tree with the just built one
         self.tree = tree
         # Update the number of switches
         if best_node.actions[self.player_index] > 3:
