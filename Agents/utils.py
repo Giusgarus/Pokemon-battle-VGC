@@ -10,6 +10,7 @@ from Random.Random_Agent import RandomPolicy
 from Combined.Combined_Agent import CombinedPolicy
 from vgc.datatypes.Objects import Pkm, PkmMove
 
+usage_arguments = '-e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1:type1 ... pN=vN:typeN'
 
 def retrive_args(flag: str, n_next_args=1) -> list:
     '''
@@ -131,7 +132,7 @@ def load_env(player_index=0) -> bool:
     '''
     args = retrive_args(flag='-e', n_next_args=2)
     if len(args) != 2:
-        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path\n- Agents: Random, Logic, MiniMax, MCTS, Combined.\n- Statistics: computed only for the first agent passed as parameter.')
+        print(f'Usage:\n- Command: {sys.argv[0]} {usage_arguments}\n- Agents: Random, Logic, MiniMax, MCTS, Combined.\n- Statistics: computed only for the first agent passed as parameter.')
         return False
     return dotenv_values(args[player_index])
 
@@ -154,16 +155,31 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
     }
     agents = retrive_args(flag='-a', n_next_args=2)
     try:
-        n_params = retrive_args(flag='-p', n_next_args=1)[0]
+        n_params = int(retrive_args(flag='-p', n_next_args=1)[0])
         keys_values = retrive_args(flag='-p', n_next_args=n_params+1)[1:]
     except:
         keys_values = []
     params_dict = {}
-    for key_value in keys_values:
-        key, value = key_value.split('=')
-        params_dict[key] = value
+    for key_value_type in keys_values:
+        try:
+            key_value, val_type = key_value_type.split(':')
+            key, value = key_value.split('=')
+        except:
+            print(f'Usage:\n- Command: {sys.argv[0]} {usage_arguments}\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            return None, None
+        if val_type == 'int':
+            params_dict[key] = int(value)
+        elif val_type == 'float':
+            params_dict[key] = float(value)
+        elif val_type == 'bool':
+            if str(value) == 'True': params_dict[key] = True
+            elif str(value) == 'False': params_dict[key] = False
+            else: raise ValueError
+        else:
+            params_dict[key] = str(value)
+        print(f'{key}={params_dict[key]} ({str(val_type)})') # debug
     if agents == []:
-        print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+        print(f'Usage:\n- Command: {sys.argv[0]} {usage_arguments}\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
         return None, None
     try:
         params_dict['player_index'] = 0
@@ -174,7 +190,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
             agent0 = agents_dict[agents[0]]()
             #print(f'First agent with NO parameters:\n{agent0}') # debug
         except:
-            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            print(f'Usage:\n- Command: {sys.argv[0]} {usage_arguments}\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
             return None, None
     try:
         agent1 = agents_dict[agents[1]](1)
@@ -184,7 +200,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
             agent1 = agents_dict[agents[1]]()
             #print(f'First agent with NO parameters:\n{agent1}') # debug
         except:
-            print(f'Usage:\n- Command: {sys.argv[0]} -e first_agent.env second_agent.env -a first_agent second_agent -s statistics_path -p p1=v1 pN=vN\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
+            print(f'Usage:\n- Command: {sys.argv[0]} {usage_arguments}\n- Agents: {[e for e in agents_dict.keys()]}.\n- Statistics: computed only for the first agent passed as parameter.')
             return None, None
     return agent0, agent1
 
@@ -244,7 +260,7 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
     # Perform a single battle until it's terminated
     index = 0
     terminated = False
-    while not terminated:
+    while not terminated and index < 100:
         my_action = player0.get_action(states[0])
         opp_action = player1.get_action(states[1])
         try:
@@ -264,5 +280,5 @@ def run_battle(player0: BattlePolicy, player1: BattlePolicy, env: PkmBattleEnv, 
         hp_resudue += pkm.hp
         tot_hp += pkm.max_hp
     metrics_dict['hp_residue'] = round(number=(100/tot_hp) * hp_resudue, ndigits=2)
-    metrics_dict['winner'] = env.winner
+    metrics_dict['winner'] = env.winner if index < 100 else 0.5
     return metrics_dict

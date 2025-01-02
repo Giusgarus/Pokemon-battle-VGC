@@ -98,12 +98,12 @@ class MCTSNode:
                 combinations_list.append([i,j])
         return combinations_list
 
-    def get_all_actions_combinations(self):
+    def get_all_actions_combinations(self, player_index: int):
         '''
         Generates a list with all the combinations of the actions of the first team with the actions of the second team.
         '''
-        my_team = self.env.teams[0]
-        opp_team = self.env.teams[1]
+        my_team = self.env.teams[player_index]
+        opp_team = self.env.teams[(player_index+1)%2]
         actions_pkm1 = my_team.active.moves
         actions_pkm2 = opp_team.active.moves
         combinations_list = []
@@ -119,15 +119,16 @@ class MCTSNode:
         Params:
         - winner_value: the value which indentifies the winner in the terminal state (1 if team 0 wins, 0 otherwise).
         '''
-        if winner_value == 0:
-            hp_residue_percentage = 0
-        else:
-            hp_residue = sum([pkm.hp for pkm in self.env.teams[player_index].party] + [self.env.teams[player_index].active.hp])
-            max_hp = sum([pkm.max_hp for pkm in self.env.teams[player_index].party] + [self.env.teams[player_index].active.max_hp])
-            hp_residue_percentage = hp_residue / max_hp
-        winrate_weight = 1
-        hp_residue_weight = 1 - winrate_weight
-        self.utility_playouts += round(number=float((winner_value * winrate_weight) + (hp_residue_percentage * hp_residue_weight)), ndigits=2)
+        #if winner_value == 0:
+        #    hp_residue_percentage = 0
+        #else:
+        #    hp_residue = sum([pkm.hp for pkm in self.env.teams[player_index].party] + [self.env.teams[player_index].active.hp])
+        #    max_hp = sum([pkm.max_hp for pkm in self.env.teams[player_index].party] + [self.env.teams[player_index].active.max_hp])
+        #    hp_residue_percentage = hp_residue / max_hp
+        #winrate_weight = 1
+        #hp_residue_weight = 1 - winrate_weight
+        #self.utility_playouts += round(number=float((winner_value * winrate_weight) + (hp_residue_percentage * hp_residue_weight)), ndigits=2)
+        self.utility_playouts += winner_value
         self.total_playouts += 1
     
     def add_child(self, child: MCTSNode):
@@ -204,7 +205,7 @@ class MonteCarloTreeSearch():
             node = best_child
         # Case of print
         if self.enable_print:
-            print(f'Selected: {node.id}')
+            print(f'Selection phase: selected node ID = {node.id}')
         return node
 
     def expansion(self, node: MCTSNode, number_my_top_moves=1, number_opp_top_moves=1) -> list[MCTSNode]:
@@ -265,7 +266,7 @@ class MonteCarloTreeSearch():
         node.is_leaf = False
         # Case of print
         if self.enable_print:
-            print(f'Expanded {number_my_top_moves} nodes: {node.id} -> {[n.id for n in node.children]}')
+            print(f'Expansion phase (expanded {number_my_top_moves} nodes): {node.id} -> {[n.id for n in node.children]}')
         return node.children
 
     def simulation(self, leafs: list[MCTSNode]) -> None:
@@ -289,7 +290,7 @@ class MonteCarloTreeSearch():
             Returns:
             The next node chosen for a single step of the simulation.
             '''
-            actions_comb_list = n.get_all_actions_combinations()
+            actions_comb_list = n.get_all_actions_combinations(self.player_index)
             index = np.random.randint(0, len(actions_comb_list))
             next_env, _, _, _, _ = n.env.step(actions_comb_list[index])
             self.node_counter += 1
@@ -345,7 +346,7 @@ class MonteCarloTreeSearch():
         '''
         # Case of print
         if self.enable_print:
-            print('Backpropagation phase')
+            print('Backpropagation phase:')
         # Performs a backpropagation for each termination node
         for node in nodes:
             winner_value = 1 if self.player_index == node.env.winner else 0
@@ -376,7 +377,7 @@ class MonteCarloTreeSearch():
             # Case of print
             if self.enable_print:
                 path_utility_list = [str(str(n.id)+':'+str(n.utility_playouts)+'/'+str(n.total_playouts)) for n in backprop_nodes]
-                print(f'Backpropagated {len(backprop_nodes)} nodes: {path_utility_list}')
+                print(f'\tPath from the leaf to the root of {len(backprop_nodes)} nodes: {path_utility_list}')
 
 
 
@@ -440,6 +441,25 @@ class MCTSBattlePolicy(BattlePolicy):
         Returns:
         The best node chosen by the MCTS algorithm.
         '''
+
+        def heuristic(children: list[MCTSNode]) -> MCTSNode:
+            best_node = children[0]
+            for child in children:
+                best_node_utility = best_node.utility_playouts / best_node.total_playouts
+                this_node_utility = child.utility_playouts / child.total_playouts
+                # Case of switch action skipped if there is a difference between the utility values < SWITCH_COND (~0.02/0.05)
+                if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['SWITCH_COND']:
+                    continue
+                # Case of current node with total number of playouts > SIMILAR_UTILITY_COND1 times the best node's total number of playouts and similar utility values
+                if child.total_playouts > best_node.total_playouts * self.params['TOTAL_PLAYOUTS_COND1'] \
+                    and abs(this_node_utility - best_node_utility) < self.params['TOTAL_PLAYOUTS_COND2']:
+                    best_node = child
+                    continue
+                # Case of child with better utility value
+                if this_node_utility > best_node_utility:
+                    best_node = child
+            return best_node
+
         # Initializations
         N = self.params['N']
         state_copy: GameState = deepcopy(state)
@@ -449,13 +469,10 @@ class MCTSBattlePolicy(BattlePolicy):
             enable_print=self.enable_print,
             enable_tree_visualization=self.enable_tree_visualization
         )
-        # Case of print
-        if self.enable_print:
-            print(f'Simulation phase for player {self.player_index}')
         # Perform N simulations
         for i in range(N):
             if self.enable_print:
-                print(f'Player: {self.player_index}\nSimulation: {i+1}/{N}')
+                print(f'Iteration: {i+1}/{N}')
             leaf = tree.selection(self.params['C'])
             children = tree.expansion(leaf, number_my_top_moves=self.params['MY_TOP_MOVES'], number_opp_top_moves=self.params['OPP_TOP_MOVES'])
             terminal_nodes = tree.simulation(children)
@@ -463,22 +480,9 @@ class MCTSBattlePolicy(BattlePolicy):
         # Case of no possible moves
         if tree.root.children == []:
             return None
-        # Choose the move
-        best_node = tree.root.children[0]
-        for child in tree.root.children:
-            best_node_utility = best_node.utility_playouts / best_node.total_playouts
-            this_node_utility = child.utility_playouts / child.total_playouts
-            # Case of switch action skipped if there is a difference between the utility values < HEURISTIC_COND1 (~0.02/0.05)
-            if child.actions[self.player_index] > 3 and abs(best_node_utility - this_node_utility) < self.params['SWITCH_COND']:
-                continue
-            # Case of current node with total number of playouts > HEURISTIC_COND2_1 times the best node's total number of playouts and similar utility values
-            if child.total_playouts > best_node.total_playouts * self.params['SIMILAR_UTILITY_COND1'] \
-                and abs(this_node_utility - best_node_utility) < self.params['SIMILAR_UTILITY_COND2']:
-                best_node = child
-                continue
-            # Case of child with better utility value
-            if this_node_utility > best_node_utility:
-                best_node = child
+        # Choose the best move based on the heuristic function
+        best_node = heuristic(tree.root.children)
+        # Update the tree with the just built one
         self.tree = tree
         # Update the number of switches
         if best_node.actions[self.player_index] > 3:
