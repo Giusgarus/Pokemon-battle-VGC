@@ -1,7 +1,6 @@
-from copy import deepcopy
 import os
 import sys
-from dotenv import dotenv_values, load_dotenv
+from dotenv import dotenv_values
 from vgc.behaviour.BattlePolicies import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from MCTS.MCTSBattlePolicies import MCTSBattlePolicy
@@ -9,6 +8,7 @@ from MiniMax.MiniMaxBattlePolicies import MiniMaxPlayer
 from Logic.Logic_Agent import LogicPolicy
 from Random.Random_Agent import RandomPolicy
 from Combined.Combined_Agent import CombinedPolicy
+from vgc.datatypes.Objects import Pkm, PkmMove
 
 
 def retrive_args(flag: str, n_next_args=1) -> list:

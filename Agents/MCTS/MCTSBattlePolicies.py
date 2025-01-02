@@ -3,17 +3,16 @@ from copy import deepcopy
 import numpy as np
 from vgc.behaviour import BattlePolicy
 from vgc.engine.PkmBattleEnv import PkmBattleEnv
-from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
+from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove, Pkm
 from Logic.Logic_Agent import KnowledgeBase
 from pyvis.network import Network
 
 
-
-def get_pkm_move_name(node: MCTSNode, action: int, player_index: int):
+def get_pkm_move_name(active: Pkm, action: int):
     if action > 3:
         move_name = f'Switch with {action-4}'
     else:
-        moves: list[PkmMove] = node.env.teams[player_index].active.moves
+        moves: list[PkmMove] = active.moves
         move_name = moves[action].name
     return move_name
 
@@ -251,14 +250,12 @@ class MonteCarloTreeSearch():
                     color='#2196F3'
                 )
                 my_move_name = get_pkm_move_name(
-                    node=node,
-                    action=actions[self.player_index],
-                    player_index=self.player_index
+                    node=node.env.teams[self.player_index],
+                    action=actions[self.player_index]
                 )
                 opp_move_name = get_pkm_move_name(
-                    node=node,
-                    action=actions[(self.player_index+1)%2],
-                    player_index=(self.player_index+1)%2
+                    node=node.env.teams[(self.player_index+1)%2],
+                    action=actions[(self.player_index+1)%2]
                 )
                 self.net.add_edge(
                     source=node.id,
@@ -312,14 +309,12 @@ class MonteCarloTreeSearch():
                     color='#BBDEFB'
                 )
                 my_move_name = get_pkm_move_name(
-                    node=node,
-                    action=actions_comb_list[index][self.player_index],
-                    player_index=self.player_index
+                    node=node.env.teams[self.player_index],
+                    action=actions_comb_list[index][self.player_index]
                 )
                 opp_move_name = get_pkm_move_name(
-                    node=node,
-                    action=actions_comb_list[index][(self.player_index+1)%2],
-                    player_index=(self.player_index+1)%2
+                    node=node.env.teams[(self.player_index+1)%2],
+                    action=actions_comb_list[index][(self.player_index+1)%2]
                 )
                 self.net.add_edge(
                     source=node.id,
