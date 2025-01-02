@@ -4,11 +4,20 @@ from customtkinter import CTk, CTkButton, CTkRadioButton, CTkLabel
 from typing import Tuple
 
 from vgc.behaviour import BattlePolicy
-from vgc.engine.PkmBattleEnv import PkmBattleEnv
 from vgc.datatypes.Constants import DEFAULT_PKM_N_MOVES, DEFAULT_PARTY_SIZE, TYPE_CHART_MULTIPLIER, DEFAULT_N_ACTIONS
-from vgc.datatypes.Objects import GameState, PkmTeam, PkmMove
+from vgc.datatypes.Objects import GameState, Pkm, PkmMove
 from vgc.datatypes.Types import PkmStat, PkmType, WeatherCondition
-from vgc.competition.StandardPkmMoves import Struggle
+from pyvis.network import Network
+
+
+
+def get_pkm_move_name(active: Pkm, action: int):
+    if action > 3:
+        move_name = f'Switch with {action-4}'
+    else:
+        moves: list[PkmMove] = active.moves
+        move_name = moves[action].name
+    return move_name
 
 
 def damage_prediction(move_type: PkmType, pkm_type: PkmType, move_power: float, opp_pkm_type: PkmType,
@@ -86,10 +95,16 @@ def get_residual_hp(game: GameState, player: bool) -> Tuple[int, int]:
 
 class MiniMaxBattlePolicy:
     
-    def __init__(self, depth:int, player: bool, life_value = 500):
+    def __init__(self, depth:int, player: bool, life_value = 500, enable_tree_visualization=False):
         self.player = player
         self.depth = depth
         self.life_value = life_value
+        self.enable_tree_visualization = enable_tree_visualization
+        if not self.enable_tree_visualization:
+            self.net = None
+        else:
+            self.net = Network(height="1800px", width="1800px", directed=True)
+        self.counter = 0
 
     def evaluate(self, game: GameState, player: bool) -> float:
 
@@ -220,7 +235,7 @@ class MiniMaxBattlePolicy:
 
 
     
-    def mini(self, game: GameState, depth: int, alpha, beta) -> float:
+    def mini(self, game: GameState, depth: int, alpha, beta, current) -> float:
         residual_hp = get_residual_hp(game, 0)
         if depth == 0 or residual_hp[1] ==0 or residual_hp[0] == 0:
             return self.evaluate(game, self.player)
@@ -233,7 +248,23 @@ class MiniMaxBattlePolicy:
                 if move == 5 and game.teams[idx].party[1].fainted == True:
                     continue
                 new_game_state = simulate_move(game, move, idx)
-                eval = self.max(new_game_state, depth - 1, alpha, beta)
+                if self.enable_tree_visualization:
+                    self.net.add_node(
+                        n_id=self.counter,
+                        label=f'{self.evaluate(new_game_state, self.player)}',
+                        color='#2196F3'
+                    )
+                    move_name = get_pkm_move_name(
+                        active=game.teams[self.player].active,
+                        action= move
+                    )
+                    self.net.add_edge(
+                        source=current,
+                        to=self.counter,
+                        label=f'{move_name}'
+                    )
+                    self.counter += 1
+                eval = self.max(new_game_state, depth - 1, alpha, beta, self.counter - 1)
                 min_eval = min(min_eval, eval)
                 beta = min(beta, eval)
                 #CONTROLLA CONDIZIONE
@@ -242,7 +273,7 @@ class MiniMaxBattlePolicy:
             return min_eval + self.evaluate(game, self.player)
 
 
-    def max(self, game: GameState, depth: int, alpha, beta) -> float:
+    def max(self, game: GameState, depth: int, alpha, beta, current) -> float:
         residual_hp = get_residual_hp(game, 0)
         if depth == 0 or residual_hp[1] ==0 or residual_hp[0] == 0:
             return self.evaluate(game, self.player)
@@ -255,19 +286,42 @@ class MiniMaxBattlePolicy:
                 if move == 5 and game.teams[idx].party[1].fainted == True:
                     continue
                 new_game_state = simulate_move(game, move, idx)
-                eval = self.mini(new_game_state, depth - 1, alpha, beta)
+                if self.enable_tree_visualization:
+                    self.net.add_node(
+                        n_id=self.counter,
+                        label=f'{self.evaluate(new_game_state, self.player)}',
+                        color='#2196F3'
+                    )
+                    move_name = get_pkm_move_name(
+                        active=game.teams[self.player].active,
+                        action= move
+                    )
+                    self.net.add_edge(
+                        source=current,
+                        to=self.counter,
+                        label=f'{move_name}'
+                    )
+                    self.counter += 1
+                eval = self.mini(new_game_state, depth - 1, alpha, beta, self.counter - 1)
                 max_eval = max(max_eval, eval)
                 alpha = max(alpha, eval)
                 #CONTROLLA CONDIZIONE
                 if beta <= eval:
                     break
-            return max_eval +self.evaluate(game, self.player)
+            return max_eval + self.evaluate(game, self.player)
 
 
     
     def minimax(self, game: GameState, switch_treshold: int) -> int:
         best_move = None
         best_value = float('-inf')
+        if self.enable_tree_visualization:
+            self.net.add_node(
+                self.counter,
+                label=f'{self.evaluate(game, self.player)}',
+                color='#D32F2F'
+            )
+            self.counter += 1
         idx = 0 if self.player == 0 else 1
         for move in range(DEFAULT_PKM_N_MOVES + DEFAULT_PARTY_SIZE):
             if move == 4 and game.teams[idx].party[0].fainted == True:
@@ -275,7 +329,23 @@ class MiniMaxBattlePolicy:
             if move == 5 and game.teams[idx].party[1].fainted == True:
                 continue
             new_game_state = simulate_move(game, move, idx)
-            move_value = self.mini(new_game_state, self.depth - 1, float('-inf'), float('inf'))
+            if self.enable_tree_visualization:
+                self.net.add_node(
+                    n_id=self.counter,
+                    label=f'{self.evaluate(new_game_state, self.player)}',
+                    color='#2196F3'
+                )
+                move_name = get_pkm_move_name(
+                    active=game.teams[self.player].active,
+                    action= move
+                )
+                self.net.add_edge(
+                    source=0,
+                    to=self.counter,
+                    label=f'{move_name}'
+                )
+                self.counter += 1
+            move_value = self.mini(new_game_state, self.depth - 1, float('-inf'), float('inf'), self.counter - 1)
             if move_value > best_value:
                 if move in [4,5] and abs(move_value - best_value) < switch_treshold:
                     continue
@@ -287,20 +357,49 @@ class MiniMaxBattlePolicy:
 
 class MiniMaxPlayer(BattlePolicy):
 
-    def __init__(self, player_index =0, depth = 5):
+    def __init__(self, player_index =0, depth = 5, enable_tree_visualization=False):
         self.player_index = player_index
         self.depth = depth
         self.n_switches = 0
+        self.enable_tree_visualization = enable_tree_visualization
         super().__init__()
 
 
     def set_parameters(self, params: dict):
         self.params = params
+
+
+
+    def generate_tree(self, id: int):
+        '''
+        Generates a visualization of the current structure of the tree in a HTML file.
+
+        Params:
+        - id: the identifier of the tree used to create a unique file.
+        '''
+        if self.enable_tree_visualization:
+            self.policy.net.set_options(
+                """
+                var options = {
+                "physics": {
+                    "enabled": true,
+                    "barnesHut": {
+                    "gravitationalConstant": -3000,
+                    "centralGravity": 0.1,
+                    "springLength": 150,
+                    "springConstant": 0.04
+                    },
+                    "minVelocity": 0.75
+                }
+                }
+                """
+            )
+            self.policy.net.show(f'Agents/MiniMax/MiniMax_trees/tree_{self.player_index}-{id}.html', notebook=False)
         
 
     def get_action(self, game: GameState) -> int:
-        policy = MiniMaxBattlePolicy(self.depth,self.player_index, self.params['LIFE_VALUE'])
-        best_move = policy.minimax(game, self.params['SWITCH_TRESHOLD'])
+        self.policy = MiniMaxBattlePolicy(self.depth,self.player_index, self.params['LIFE_VALUE'], self.enable_tree_visualization)
+        best_move = self.policy.minimax(game, self.params['SWITCH_TRESHOLD'])
         if best_move in [4,5]:
             self.n_switches += 1
         return best_move
