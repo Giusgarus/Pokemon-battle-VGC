@@ -12,8 +12,7 @@ def get_pkm_move_name(active: Pkm, action: int):
     if action > 3:
         move_name = f'Switch with {action-4}'
     else:
-        moves: list[PkmMove] = active.moves
-        move_name = moves[action].name
+        move_name = active.moves[action].name
     return move_name
 
 
@@ -251,11 +250,11 @@ class MonteCarloTreeSearch():
                     color='#2196F3'
                 )
                 my_move_name = get_pkm_move_name(
-                    node=node.env.teams[self.player_index],
+                    active=node.env.teams[self.player_index].active,
                     action=actions[self.player_index]
                 )
                 opp_move_name = get_pkm_move_name(
-                    node=node.env.teams[(self.player_index+1)%2],
+                    active=node.env.teams[(self.player_index+1)%2].active,
                     action=actions[(self.player_index+1)%2]
                 )
                 self.net.add_edge(
@@ -310,11 +309,11 @@ class MonteCarloTreeSearch():
                     color='#BBDEFB'
                 )
                 my_move_name = get_pkm_move_name(
-                    node=node.env.teams[self.player_index],
+                    active=node.env.teams[self.player_index].active,
                     action=actions_comb_list[index][self.player_index]
                 )
                 opp_move_name = get_pkm_move_name(
-                    node=node.env.teams[(self.player_index+1)%2],
+                    active=node.env.teams[(self.player_index+1)%2].active,
                     action=actions_comb_list[index][(self.player_index+1)%2]
                 )
                 self.net.add_edge(
