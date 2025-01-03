@@ -12,6 +12,7 @@ Explanation of Flags:
 - **-s** (Statistics flag): Specifies the path to the .csv file used to store the statistics (computed only for the first agent: agent0).
 - **-a** (Agents flag): Specifies agent0 and agent1.
 - **-p** (Parameters flag, optional): If used, specifies the number of parameters (n) and then the parameters themselves, which are passed to the class of agent0 that inherits from BattlePolicy.
+Here we provide an example of a possible command to run a series of battles between the ***MiniMax agent*** and the ***Logic agent*** using their respective environments:
 
 ```bash
 $ python Agents/pkm_battle.py -e Agents/MiniMax/MiniMax.env Agents/Logic/Logic.env -s Agents/Statistics/MiniMax_vs.csv -a MiniMax Logic
