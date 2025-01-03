@@ -1,3 +1,6 @@
 agent0;agent1;N_BATTLES;C;N;MY_TOP_MOVES;OPP_TOP_MOVES;SWITCH_COND;TOTAL_PLAYOUTS_COND1;TOTAL_PLAYOUTS_COND2;winrate;avg_n_turns;avg_n_switches;avg_hp_residue
 Combined;Random;100;1.7;30;3;3;0.3;1.7;0.05;63.0;10.86;0.0;30.42
 Combined;Random;300;1.7;30;3;3;0.3;1.7;0.05;63.33;10.93;0.0;32.34
+Combined;Logic;100;1.7;30;3;3;0.3;1.7;0.05;68.0;11.69;0.0;33.72
+Combined;Logic;300;1.7;30;3;3;0.3;1.7;0.05;69.67;11.61;0.0;36.89
+Combined;Combined;100;1.7;30;3;3;0.3;1.7;0.05;56.0;10.6;0.0;27.64

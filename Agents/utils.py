@@ -184,7 +184,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
     try:
         params_dict['player_index'] = 0
         agent0 = agents_dict[agents[0]](**params_dict)
-        #print(f'First agent with parameters:\n{agent0}') # debug
+        #print(f'First agent with parameters:\n{agents[0]}\n{params_dict}') # debug
     except:
         try:
             agent0 = agents_dict[agents[0]]()
@@ -194,7 +194,7 @@ def get_agents() -> tuple[BattlePolicy|None, BattlePolicy|None]:
             return None, None
     try:
         agent1 = agents_dict[agents[1]](1)
-        #print(f'Second agent with parameters:\n{agent1}') # debug
+        #print(f'Second agent with parameters:\n{agents[1]}') # debug
     except:
         try:
             agent1 = agents_dict[agents[1]]()

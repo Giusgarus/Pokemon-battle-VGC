@@ -19,7 +19,7 @@ def main():
     if agents[0] is None or agents[1] is None: return
     params_space_p0, params_space_p1 = get_parameters_from_env()
 
-    # Create 2 players based on the agents passed as command line arguments
+    # Assign the agents passed as command line arguments
     player0: BattlePolicy = agents[0]
     player1: BattlePolicy = agents[1]
 
