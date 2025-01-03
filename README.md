@@ -5,7 +5,7 @@ The syntax of the command to be executed is the following:
 
 ```bash
 $ python Agents/pkm_battle.py -e <path_to_agent0.env> <path_to_agent1.env> -s <path_to_statistics.csv> -a <agent0> <agent1> -p <n> <param_1>=<value_1>:<type_1> ... <param_n>=<value_n>:<type_n>
-
+'''
 
 Explanation of Flags
 -e (Environment flag): Specifies respectively the environment of agent0 and the one of agent1.
