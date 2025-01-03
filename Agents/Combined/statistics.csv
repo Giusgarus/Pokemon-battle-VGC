@@ -1,3 +1,0 @@
-agent0;agent1;C;N;N_BATTLES;MY_EXPANSION;OPP_EXPANSION;HEURISTIC_COND1;HEURISTIC_COND2_1;HEURISTIC_COND2_2;winrate;avg_n_turns;avg_n_switches;avg_hp_residue
-Combined;Random;1.4;50;10;2;2;0.2;1.5;0.05;50.0;10.7;0.0;25.03
-Combined;Random;1.4;50;10;2;2;0.2;1.5;0.05;60.0;12.7;0.0;25.27
